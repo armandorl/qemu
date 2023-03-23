@@ -44,12 +44,13 @@
 //#include "hw/misc/s32g2-dramc.h"
 //#include "hw/misc/s32g2-sysctrl.h"
 //#include "hw/misc/allwinner-sid.h"
-//#include "hw/sd/allwinner-sdhost.h"
+#include "hw/sd/allwinner-sdhost.h"
 //#include "hw/net/allwinner-sun8i-emac.h"
 //#include "hw/rtc/allwinner-rtc.h"
 //#include "hw/i2c/allwinner-i2c.h"
 #include "target/arm/cpu.h"
 #include "sysemu/block-backend.h"
+
 
 /**
  * Allwinner H3 device list
@@ -134,7 +135,7 @@ struct S32G2State {
 //    S32G2DramCtlState dramc;
 //    S32G2SysCtrlState sysctrl;
 //    AwSidState sid;
-//    AwSdHostState mmc0;
+    AwSdHostState mmc0;
 //    AWI2CState i2c0;
 //    AWI2CState i2c1;
 //    AWI2CState i2c2;

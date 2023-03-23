@@ -49,9 +49,10 @@ static void zeusflasher_init(MachineState *machine)
         exit(1);
     }
 
-    /* Only allow Cortex-A7 for this board */
-    if (strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-a7")) != 0) {
-        error_report("This board can only be used with cortex-a7 CPU");
+    /* Only allow Cortex-A53 for this board */
+    if ((strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-a53")) != 0) && 
+	(strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-m7")) != 0)  ) {
+        error_report("This board can only be used with cortex-a53 or cortex-m7 CPU");
         exit(1);
     }
 
@@ -59,12 +60,12 @@ static void zeusflasher_init(MachineState *machine)
     object_property_add_child(OBJECT(machine), "soc", OBJECT(s32g2_st));
     object_unref(OBJECT(s32g2_st));
 
+#if 0
     /* Setup timer properties */
     object_property_set_int(OBJECT(s32g2_st), "clk0-freq", 32768, &error_abort);
     object_property_set_int(OBJECT(s32g2_st), "clk1-freq", 24 * 1000 * 1000,
                             &error_abort);
 
-#if 0
     /* Setup SID properties. Currently using a default fixed SID identifier. */
     if (qemu_uuid_is_null(&s32g2_st->sid.identifier)) {
         qdev_prop_set_string(DEVICE(s32g2_st), "identifier",
@@ -76,13 +77,13 @@ static void zeusflasher_init(MachineState *machine)
     /* Setup EMAC properties */
     object_property_set_int(OBJECT(&s32g2_st->emac), "phy-addr", 1, &error_abort);
 
-#endif
     /* DRAMC */
     object_property_set_uint(OBJECT(s32g2_st), "ram-addr", s32g2_st->memmap[S32G2_DEV_SDRAM],
                              &error_abort);
     object_property_set_int(OBJECT(s32g2_st), "ram-size", machine->ram_size / MiB,
                             &error_abort);
 
+#endif
     /* Mark H3 object realized */
     qdev_realize(DEVICE(s32g2_st), NULL, &error_abort);
 
@@ -113,7 +114,7 @@ static void zeusflasher_init(MachineState *machine)
 
 static void zeusflasher_machine_init(MachineClass *mc)
 {
-    mc->desc = "Zeus Flasher (Cortex-A53 / Cortex-M7)";
+    mc->desc = "Zeus Flasher S32G2 (Cortex-A53 / Cortex-M7)";
     mc->init = zeusflasher_init;
     mc->block_default_type = IF_SD;
     mc->units_per_default_bus = 1;

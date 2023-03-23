@@ -176,15 +176,22 @@ enum {
 void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk)
 {
     const int64_t rom_size = 32 * KiB;
+    const int64_t rom_offset = 0 * KiB;
+    
     g_autofree uint8_t *buffer = g_new0(uint8_t, rom_size);
 
-    if (blk_pread(blk, 8 * KiB, rom_size, buffer, 0) < 0) {
+    if (blk_pread(blk, rom_offset, rom_size, buffer, 0) < 0) {
         error_setg(&error_fatal, "%s: failed to read BlockBackend data",
                    __func__);
         return;
     }
 
-    rom_add_blob("allwinner-h3.bootrom", buffer, rom_size,
+    uint32_t* ptr=(uint32_t*)buffer;
+    for(int i=0; i < 100; i++)
+    {
+	    printf("%d: 0x%08x\n", i, ptr[i]);
+    }
+    rom_add_blob("s32g2.bootrom", buffer, rom_size,
                   rom_size, s->memmap[S32G2_DEV_SRAM_A1],
                   NULL, NULL, NULL, NULL, false);
 }
@@ -217,17 +224,16 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "sid", &s->sid, TYPE_AW_SID);
     object_property_add_alias(obj, "identifier", OBJECT(&s->sid),
                               "identifier");
-
+#endif
     object_initialize_child(obj, "mmc0", &s->mmc0, TYPE_AW_SDHOST_SUN5I);
 
+#if 0
     object_initialize_child(obj, "emac", &s->emac, TYPE_AW_SUN8I_EMAC);
-
     object_initialize_child(obj, "dramc", &s->dramc, TYPE_S32G2_DRAMC);
     object_property_add_alias(obj, "ram-addr", OBJECT(&s->dramc),
                              "ram-addr");
     object_property_add_alias(obj, "ram-size", OBJECT(&s->dramc),
                               "ram-size");
-
     object_initialize_child(obj, "rtc", &s->rtc, TYPE_AW_RTC_SUN6I);
 
     object_initialize_child(obj, "twi0",  &s->i2c0,  TYPE_AW_I2C_SUN6I);
@@ -355,6 +361,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->sid), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->sid), 0, s->memmap[S32G2_DEV_SID]);
 
+#endif
     /* SD/MMC */
     object_property_set_link(OBJECT(&s->mmc0), "dma-memory",
                              OBJECT(get_system_memory()), &error_fatal);
@@ -365,7 +372,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->mmc0),
                               "sd-bus");
-
+#if 0
     /* EMAC */
     /* FIXME use qdev NIC properties instead of nd_table[] */
     if (nd_table[0].used) {
