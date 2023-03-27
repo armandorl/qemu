@@ -63,6 +63,7 @@
  * @see S32G2State
  */
 enum {
+#if 0
     S32G2_DEV_SRAM_A1,
     S32G2_DEV_SRAM_A2,
     S32G2_DEV_SRAM_C,
@@ -98,6 +99,21 @@ enum {
     S32G2_DEV_CPUCFG,
     S32G2_DEV_R_TWI,
     S32G2_DEV_SDRAM
+#endif
+    S32G2_DEV_GIC_DIST,
+    S32G2_DEV_GIC_CPU,
+    S32G2_DEV_GIC_HYP,
+    S32G2_DEV_GIC_VCPU,
+    S32G2_DEV_SRAM,
+    S32G2_DEV_SSRAM,
+    S32G2_DEV_DRAM,
+    S32G2_DEV_SPI0,
+    S32G2_DEV_SPI1,
+    S32G2_DEV_SPI2,
+    S32G2_DEV_QSPI,
+    S32G2_DEV_I2C0,
+    S32G2_DEV_I2C1,
+    S32G2_DEV_I2C2
 };
 
 /** Total number of CPU cores in the H3 SoC */
@@ -166,6 +182,6 @@ struct S32G2State {
  * @s: Allwinner H3 state object pointer
  * @blk: Block backend device object pointer
  */
-void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk);
+void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry);
 
 #endif /* HW_ARM_S32G2_H */

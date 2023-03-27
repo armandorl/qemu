@@ -98,18 +98,26 @@ static void zeusflasher_init(MachineState *machine)
     qdev_realize_and_unref(carddev, bus, &error_fatal);
 
     /* SDRAM */
-    memory_region_add_subregion(get_system_memory(), s32g2_st->memmap[S32G2_DEV_SDRAM],
+    memory_region_add_subregion(get_system_memory(), s32g2_st->memmap[S32G2_DEV_DRAM],
                                 machine->ram);
 
+    hwaddr entry = 0;
     /* Load target kernel or start using BootROM */
     if (!machine->kernel_filename && blk && blk_is_available(blk)) {
         /* Use Boot ROM to copy data from SD card to SRAM */
-        s32g2_bootrom_setup(s32g2_st, blk);
+        s32g2_bootrom_setup(s32g2_st, blk, &entry);
     }
-    zeusflasher_binfo.loader_start = s32g2_st->memmap[S32G2_DEV_SDRAM];
+    zeusflasher_binfo.loader_start = entry;
     zeusflasher_binfo.ram_size = machine->ram_size;
     zeusflasher_binfo.psci_conduit = QEMU_PSCI_CONDUIT_SMC;
+    zeusflasher_binfo.firmware_loaded = 1;
+    zeusflasher_binfo.entry = entry;
     arm_load_kernel(ARM_CPU(first_cpu), machine, &zeusflasher_binfo);
+    
+    CPUState *cs = first_cpu;
+    for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
+        ARM_CPU(cs)->env.boot_info = &zeusflasher_binfo;
+    }
 }
 
 static void zeusflasher_machine_init(MachineClass *mc)

@@ -33,6 +33,7 @@
 
 /* Memory map */
 const hwaddr s32g2_memmap[] = {
+#if 0
     [S32G2_DEV_SRAM_A1]    = 0x00000000,
     [S32G2_DEV_SRAM_A2]    = 0x00044000,
     [S32G2_DEV_SRAM_C]     = 0x00010000,
@@ -68,6 +69,22 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_CPUCFG]     = 0x01f01c00,
     [S32G2_DEV_R_TWI]      = 0x01f02400,
     [S32G2_DEV_SDRAM]      = 0x40000000
+#endif
+    [S32G2_DEV_QSPI]  = 0x00000000,
+    [S32G2_DEV_SRAM]  = 0x24000000,
+    [S32G2_DEV_SSRAM] = 0x34000000,
+    [S32G2_DEV_SPI0]  = 0x401d4000,
+    [S32G2_DEV_SPI1]  = 0x401d8000,
+    [S32G2_DEV_SPI2]  = 0x401dc000,
+    [S32G2_DEV_I2C0]  = 0x401E4000,
+    [S32G2_DEV_I2C1]  = 0x401E8000,
+    [S32G2_DEV_I2C2]  = 0x401Ec000,
+    [S32G2_DEV_GIC_DIST]   = 0x50801000,
+    [S32G2_DEV_GIC_CPU]    = 0x50802000,
+    [S32G2_DEV_GIC_HYP]    = 0x50804000,
+    [S32G2_DEV_GIC_VCPU]   = 0x50806000,
+    [S32G2_DEV_DRAM]  = 0x80000000
+
 };
 
 /* List of unimplemented devices */
@@ -130,7 +147,7 @@ struct S32G2Unimplemented {
     { "core-dbg",  0x3f500000, 128 * KiB },
     { "tsgen-ro",  0x3f506000, 4 * KiB },
     { "tsgen-ctl", 0x3f507000, 4 * KiB },
-    { "ddr-mem",   0x40000000, 2 * GiB },
+/*    { "ddr-mem",   0x40000000, 2 * GiB }, */
     { "n-brom",    0xffff0000, 32 * KiB },
     { "s-brom",    0xffff0000, 64 * KiB }
 };
@@ -173,10 +190,48 @@ enum {
     S32G2_GIC_NUM_SPI       = 128
 };
 
-void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk)
+
+typedef struct s32g2_boot_cfg
 {
-    const int64_t rom_size = 32 * KiB;
+    uint8_t sec_boot :1;
+    uint8_t watchdog :1;
+#define S32G2_CORTEX_M7   0
+#define S32G2_CORTEX_A53  1
+    uint8_t boot_target :2;
+} s32g2_boot_cfg_t;
+
+typedef struct s32g2_ivt
+{
+    uint32_t header;
+    uint32_t selftest_addr;
+    uint32_t selftest_bk_addr;
+    uint32_t dcd_addr;
+    uint32_t dcd_bk_addr;
+    uint32_t fw_start_addr;
+    uint32_t fw_start_bk_addr;
+    uint32_t app_start_addr;
+    uint32_t app_start_bk_addr;
+    uint32_t boot_config;
+    uint32_t life_cycle_config;
+    uint32_t gmac;
+} s32g2_ivt_t;
+
+typedef struct s32g2_app_img
+{
+    uint32_t header;
+    uint32_t ram_start;
+    uint32_t ram_entry;
+    uint32_t length;
+} s32g2_app_img_t;
+
+static s32g2_ivt_t s32g2_ivt = {0};
+static s32g2_boot_cfg_t s32g2_boot_cfg = {0};
+static s32g2_app_img_t s32g2_app_img = {0};
+void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
+{
+    const int64_t rom_size = 256 * KiB;
     const int64_t rom_offset = 0 * KiB;
+    uint32_t boot_offset = 0;
     
     g_autofree uint8_t *buffer = g_new0(uint8_t, rom_size);
 
@@ -187,12 +242,83 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk)
     }
 
     uint32_t* ptr=(uint32_t*)buffer;
+    s32g2_ivt.header = ptr[0];
+    s32g2_ivt.selftest_addr = ptr[2];
+    s32g2_ivt.selftest_bk_addr = ptr[3];
+    s32g2_ivt.dcd_addr = ptr[4];
+    s32g2_ivt.dcd_bk_addr = ptr[5];
+    s32g2_ivt.fw_start_addr = ptr[6];
+    s32g2_ivt.fw_start_bk_addr = ptr[7];
+    s32g2_ivt.app_start_addr = ptr[8];
+    s32g2_ivt.app_start_bk_addr = ptr[9];
+    s32g2_ivt.boot_config = ptr[10];
+    s32g2_ivt.life_cycle_config = ptr[11];
+    s32g2_ivt.gmac = ptr[0xF0/4];
+
+
+    printf("header=0x%08x\n", s32g2_ivt.header);
+    printf("ST=0x%08x\n", s32g2_ivt.selftest_addr);
+    printf("ST bk=0x%08x\n", s32g2_ivt.selftest_bk_addr);
+    printf("DCD=0x%08x\n", s32g2_ivt.dcd_addr);
+    printf("DCD bk=0x%08x\n", s32g2_ivt.dcd_bk_addr);
+    printf("FW=0x%08x\n", s32g2_ivt.fw_start_addr);
+    printf("FW bk=0x%08x\n", s32g2_ivt.fw_start_bk_addr);
+    printf("App=0x%08x\n", s32g2_ivt.app_start_addr);
+    printf("App bk=0x%08x\n", s32g2_ivt.app_start_bk_addr);
+    printf("Boot=0x%08x\n", s32g2_ivt.boot_config);
+    printf("LC=0x%08x\n", s32g2_ivt.life_cycle_config);
+    printf("GMAC=0x%08x\n", s32g2_ivt.gmac);
+
+    s32g2_boot_cfg.sec_boot = (s32g2_ivt.boot_config & 0x00000008) >> 3;
+    s32g2_boot_cfg.watchdog = (s32g2_ivt.boot_config & 0x00000008) >> 2;
+    s32g2_boot_cfg.boot_target = (s32g2_ivt.boot_config & 0x00000003);
+
+    printf("sec boot=0x%08x\n", s32g2_boot_cfg.sec_boot); 
+    printf("watchdog=0x%08x\n", s32g2_boot_cfg.watchdog); 
+    printf("boottarget=%s\n", ((s32g2_boot_cfg.boot_target)==S32G2_CORTEX_A53)? "Cortex-A53" : "Cortex-M7" );
+
+
+    if(s32g2_boot_cfg.sec_boot == 0)
+    {
+        boot_offset = s32g2_ivt.app_start_addr;
+    }
+    else
+    {
+        boot_offset = s32g2_ivt.fw_start_addr;
+    }
+
+    ptr=(uint32_t*)&buffer[boot_offset];
+    s32g2_app_img.header=ptr[0];
+    s32g2_app_img.ram_start=ptr[1];
+    s32g2_app_img.ram_entry=ptr[2];
+    s32g2_app_img.length=ptr[3];
+
+    uint8_t* app_code=(uint8_t*)&ptr[0x40 / 4];
+    uint32_t* app_code_curr = (uint32_t*)app_code;
+
+    printf("App header=0x%08x\n", s32g2_app_img.header);
+    printf("App ram start=0x%08x\n", s32g2_app_img.ram_start);
+    printf("App ram entry=0x%08x\n", s32g2_app_img.ram_entry);
+    printf("App length=0x%08x\n", s32g2_app_img.length);
+    printf("First code=0x%08x\n", *app_code_curr);
+
+    *code_entry = s32g2_app_img.ram_entry;
+    uint32_t entry_offset = (s32g2_app_img.ram_entry - s32g2_app_img.ram_start);
+    
+    printf("Entry offset=0x%08x\n", entry_offset + boot_offset + 0x40 );
+
+    app_code += entry_offset;
+    app_code_curr = (uint32_t*)app_code; 
+    printf("First entry code=0x%08x\n", *app_code_curr);
+#if 0
     for(int i=0; i < 100; i++)
     {
-	    printf("%d: 0x%08x\n", i, ptr[i]);
+	    if( ptr[i] != 0 )
+		    printf("%d: 0x%08x\n", i, ptr[i]);
     }
-    rom_add_blob("s32g2.bootrom", buffer, rom_size,
-                  rom_size, s->memmap[S32G2_DEV_SRAM_A1],
+#endif
+    rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length,
+                  s32g2_app_img.length, s32g2_app_img.ram_entry,
                   NULL, NULL, NULL, NULL, false);
 }
 
@@ -204,7 +330,7 @@ static void s32g2_init(Object *obj)
 
     for (int i = 0; i < S32G2_NUM_CPUS; i++) {
         object_initialize_child(obj, "cpu[*]", &s->cpus[i],
-                                ARM_CPU_TYPE_NAME("cortex-a7"));
+                                ARM_CPU_TYPE_NAME("cortex-a53"));
     }
 
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GIC);
@@ -332,17 +458,17 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_TIMER1));
 #endif
     /* SRAM */
-    memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram A1",
-                            64 * KiB, &error_abort);
-    memory_region_init_ram(&s->sram_a2, OBJECT(dev), "sram A2",
+    memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
                             32 * KiB, &error_abort);
-    memory_region_init_ram(&s->sram_c, OBJECT(dev), "sram C",
-                            44 * KiB, &error_abort);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_A1],
+    memory_region_init_ram(&s->sram_a2, OBJECT(dev), "ssram",
+                            8 * MiB, &error_abort);
+    memory_region_init_ram(&s->sram_c, OBJECT(dev), "dram",
+                            1 * GiB, &error_abort);
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM],
                                 &s->sram_a1);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_A2],
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SSRAM],
                                 &s->sram_a2);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C],
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM],
                                 &s->sram_c);
 #if 0
     /* Clock Control Unit */
@@ -366,7 +492,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     object_property_set_link(OBJECT(&s->mmc0), "dma-memory",
                              OBJECT(get_system_memory()), &error_fatal);
     sysbus_realize(SYS_BUS_DEVICE(&s->mmc0), &error_fatal);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mmc0), 0, s->memmap[S32G2_DEV_MMC0]);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mmc0), 0, s->memmap[S32G2_DEV_QSPI]);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->mmc0), 0,
                        qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_MMC0));
 
@@ -412,7 +538,6 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_create_simple("sysbus-ohci", s->memmap[S32G2_DEV_OHCI3],
                          qdev_get_gpio_in(DEVICE(&s->gic),
                                           S32G2_GIC_SPI_OHCI3));
-#endif
     /* UART0. For future clocktree API: All UARTS are connected to APB2_CLK. */
     serial_mm_init(get_system_memory(), s->memmap[S32G2_DEV_UART0], 2,
                    qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_UART0),
@@ -429,7 +554,6 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     serial_mm_init(get_system_memory(), s->memmap[S32G2_DEV_UART3], 2,
                    qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_UART3),
                    115200, serial_hd(3), DEVICE_NATIVE_ENDIAN);
-#if 0
     /* DRAMC */
     sysbus_realize(SYS_BUS_DEVICE(&s->dramc), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->dramc), 0, s->memmap[S32G2_DEV_DRAMCOM]);
