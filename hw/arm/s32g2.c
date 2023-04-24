@@ -1,7 +1,7 @@
 /*
- * Allwinner H3 System on Chip emulation
+ * S32g2 emulation
  *
- * Copyright (C) 2019 Niek Linnenbank <nieklinnenbank@gmail.com>
+ * Copyright (C) 2023 Jose Armando Ruiz <armandorl@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +73,10 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_QSPI]  = 0x00000000,
     [S32G2_DEV_SRAM]  = 0x24000000,
     [S32G2_DEV_SSRAM] = 0x34000000,
+    [S32G2_DEV_SRAM_CTRL_C0] = 0x4019C000,
+    [S32G2_DEV_SRAM_C0] = 0x4019C014,
+    [S32G2_DEV_SRAM_CTRL_C1] = 0x401A0000,
+    [S32G2_DEV_SRAM_C1] = 0x401A0014,
     [S32G2_DEV_SPI0]  = 0x401d4000,
     [S32G2_DEV_SPI1]  = 0x401d8000,
     [S32G2_DEV_SPI2]  = 0x401dc000,
@@ -92,7 +96,8 @@ struct S32G2Unimplemented {
     const char *device_name;
     hwaddr base;
     hwaddr size;
-} s32g2_unimplemented[] = {
+} s32g_unimplemented[] = {
+#if 0
     { "d-engine",  0x01000000, 4 * MiB },
     { "d-inter",   0x01400000, 128 * KiB },
     { "dma",       0x01c02000, 4 * KiB },
@@ -150,6 +155,12 @@ struct S32G2Unimplemented {
 /*    { "ddr-mem",   0x40000000, 2 * GiB }, */
     { "n-brom",    0xffff0000, 32 * KiB },
     { "s-brom",    0xffff0000, 64 * KiB }
+#endif
+    { "concerto",  0x50400000, 1 * MiB },
+    { "MC_RGM",    0x40078000, 12 * KiB },
+    { "MC_ME",     0x40088000, 12 * KiB },
+    { "SIUL2_0",   0x4009C000, 20 * KiB }
+
 };
 
 /* Per Processor Interrupts */
@@ -229,7 +240,7 @@ static s32g2_boot_cfg_t s32g2_boot_cfg = {0};
 static s32g2_app_img_t s32g2_app_img = {0};
 void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 {
-    const int64_t rom_size = 256 * KiB;
+    const int64_t rom_size = 512 * KiB;
     const int64_t rom_offset = 0 * KiB;
     uint32_t boot_offset = 0;
     
@@ -352,6 +363,8 @@ static void s32g2_init(Object *obj)
                               "identifier");
 #endif
     object_initialize_child(obj, "mmc0", &s->mmc0, TYPE_AW_SDHOST_SUN5I);
+    object_initialize_child(obj, "sram_ctrl_c0", &s->sram_ctrl_c0, TYPE_S32G2_SRAMC);
+    object_initialize_child(obj, "sram_ctrl_c1", &s->sram_ctrl_c1, TYPE_S32G2_SRAMC);
 
 #if 0
     object_initialize_child(obj, "emac", &s->emac, TYPE_AW_SUN8I_EMAC);
@@ -458,8 +471,18 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_TIMER1));
 #endif
     /* SRAM */
+    sysbus_realize(SYS_BUS_DEVICE(&s->sram_ctrl_c0), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sram_ctrl_c0), 0, s->memmap[S32G2_DEV_SRAM_CTRL_C0]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->sram_ctrl_c1), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sram_ctrl_c1), 0, s->memmap[S32G2_DEV_SRAM_CTRL_C1]);
+
     memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
                             32 * KiB, &error_abort);
+    memory_region_init_ram(&s->sram_c0, OBJECT(dev), "sram_c0",
+                            12 * KiB, &error_abort);
+    memory_region_init_ram(&s->sram_c1, OBJECT(dev), "sram_c1",
+                            12 * KiB, &error_abort);
     memory_region_init_ram(&s->sram_a2, OBJECT(dev), "ssram",
                             8 * MiB, &error_abort);
     memory_region_init_ram(&s->sram_c, OBJECT(dev), "dram",
@@ -470,6 +493,11 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                                 &s->sram_a2);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM],
                                 &s->sram_c);
+
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C0],
+                                &s->sram_c0);
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C1],
+                                &s->sram_c1);
 #if 0
     /* Clock Control Unit */
     sysbus_realize(SYS_BUS_DEVICE(&s->ccu), &error_fatal);
@@ -584,13 +612,13 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->r_twi), 0, s->memmap[S32G2_DEV_R_TWI]);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->r_twi), 0,
                        qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_R_TWI));
-    /* Unimplemented devices */
-    for (i = 0; i < ARRAY_SIZE(unimplemented); i++) {
-        create_unimplemented_device(unimplemented[i].device_name,
-                                    unimplemented[i].base,
-                                    unimplemented[i].size);
-    }
 #endif
+    /* Unimplemented devices */
+    for (i = 0; i < ARRAY_SIZE(s32g_unimplemented); i++) {
+        create_unimplemented_device(s32g_unimplemented[i].device_name,
+                                    s32g_unimplemented[i].base,
+                                    s32g_unimplemented[i].size);
+    }
 }
 
 static void s32g2_class_init(ObjectClass *oc, void *data)

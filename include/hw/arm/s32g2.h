@@ -1,7 +1,7 @@
 /*
- * Allwinner H3 System on Chip emulation
+ * S32g2 emulation
  *
- * Copyright (C) 2019 Niek Linnenbank <nieklinnenbank@gmail.com>
+ * Copyright (C) 2023 Jose Armando Ruiz <armandorl@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,18 +18,7 @@
  */
 
 /*
- * The Allwinner H3 is a System on Chip containing four ARM Cortex-A7
- * processor cores. Features and specifications include DDR2/DDR3 memory,
- * SD/MMC storage cards, 10/100/1000Mbit Ethernet, USB 2.0, HDMI and
- * various I/O modules.
- *
- * This implementation is based on the following datasheet:
- *
- *   https://linux-sunxi.org/File:Allwinner_H3_Datasheet_V1.2.pdf
- *
- * The latest datasheet and more info can be found on the Linux Sunxi wiki:
- *
- *   https://linux-sunxi.org/H3
+ * Based on the Allwinner H3 implementation
  */
 
 #ifndef HW_ARM_S32G2_H
@@ -50,6 +39,7 @@
 //#include "hw/i2c/allwinner-i2c.h"
 #include "target/arm/cpu.h"
 #include "sysemu/block-backend.h"
+#include "hw/misc/s32g2/sramc.h"
 
 
 /**
@@ -107,6 +97,10 @@ enum {
     S32G2_DEV_SRAM,
     S32G2_DEV_SSRAM,
     S32G2_DEV_DRAM,
+    S32G2_DEV_SRAM_CTRL_C0,
+    S32G2_DEV_SRAM_CTRL_C1,
+    S32G2_DEV_SRAM_C0,
+    S32G2_DEV_SRAM_C1,
     S32G2_DEV_SPI0,
     S32G2_DEV_SPI1,
     S32G2_DEV_SPI2,
@@ -162,6 +156,12 @@ struct S32G2State {
     MemoryRegion sram_a1;
     MemoryRegion sram_a2;
     MemoryRegion sram_c;
+    MemoryRegion sram_c0;
+    MemoryRegion sram_c1;
+
+    S32G2SramcState sram_ctrl_c0;
+    S32G2SramcState sram_ctrl_c1;
+
 };
 
 /**
