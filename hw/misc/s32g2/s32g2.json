@@ -1,0 +1,9 @@
+{
+	"module": {
+		"soc": "s32g2",
+		"name": "mc_me",
+		"description": "Mode Entry Module",
+		"register_map": "",
+		"size":"12 * KiB"
+	}
+}

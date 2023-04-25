@@ -144,3 +144,4 @@ softmmu_ss.add(when: 'CONFIG_LASI', if_true: files('lasi.c'))
 
 # S32G2 devices
 softmmu_ss.add(when: 'CONFIG_S32G2', if_true: files('s32g2/sramc.c'))
+softmmu_ss.add(when: 'CONFIG_S32G2', if_true: files('s32g2/mc_me.c'))
