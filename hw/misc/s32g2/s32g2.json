@@ -1,9 +1,77 @@
 {
 	"module": {
-		"soc": "s32g2",
-		"name": "mc_me",
-		"description": "Mode Entry Module",
-		"register_map": "",
-		"size":"12 * KiB"
+		"MC_ME":{
+			"soc": "s32g2",
+			"name": "mc_me",
+			"offset" : "0x40088000",
+			"description": "Mode Entry Module",
+			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
+			"registers": {
+				"CTRL_KEY" : {
+					"offset": "0x0",
+					"reset": "0x5af0",
+					"action": "if(conf_control==0) conf_control++;\nif(conf_control==1) {\ntimer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}"
+				},
+				"MODE_STAT" : {
+					"offset": "0xC",
+					"reset": "0",
+					"action":"ignore"
+				},
+				"PRTN3_PCONF" : {
+					"offset": "0x700",
+					"reset": "0"
+				},
+				"PRTN3_PUPD" : {
+					"offset": "0x704",
+					"reset": "0"
+				},
+				"PRTN3_STAT" : {
+					"offset": "0x708",
+					"reset": "0",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x800"
+		},
+		"RDC":{
+			"soc": "s32g2",
+			"name": "rdc",
+			"offset" : "0x40080000",
+			"description": "Reset Domain Controller",
+			"helpers": "",
+			"registers": {
+				"RD1_CTRL" : {
+					"offset": "0x4",
+					"reset": "0xf"
+				},
+				"RD2_CTRL" : {
+					"offset": "0x8",
+					"reset": "0xf"
+				},
+				"RD3_CTRL" : {
+					"offset": "0xC",
+					"reset": "0xf",
+					"action": "if(val==0xF)PERFORM_WRITE(REG_RD3_STAT, 0x18);\nif(val==0x7)PERFORM_WRITE(REG_RD3_STAT, 0);"
+				},
+				"RD1_STAT" : {
+					"offset": "0x84",
+					"reset": "0x18",
+					"action":"ignore"
+				},
+				"RD2_STAT" : {
+					"offset": "0x88",
+					"reset": "0x18",
+					"action":"ignore"
+				},
+				"RD3_STAT" : {
+					"offset": "0x8c",
+					"reset": "0x18",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x100"
+		}
 	}
 }

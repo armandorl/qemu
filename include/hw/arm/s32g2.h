@@ -41,6 +41,7 @@
 #include "sysemu/block-backend.h"
 #include "hw/misc/s32g2/sramc.h"
 #include "hw/misc/s32g2/mc_me.h"
+#include "hw/misc/s32g2/rdc.h"
 
 
 /**
@@ -109,7 +110,8 @@ enum {
     S32G2_DEV_I2C0,
     S32G2_DEV_I2C1,
     S32G2_DEV_I2C2,
-    S32G2_DEV_MC_ME
+    S32G2_DEV_MC_ME,
+    S32G2_DEV_RDC
 };
 
 /** Total number of CPU cores in the H3 SoC */
@@ -165,6 +167,7 @@ struct S32G2State {
     S32G2SramcState sram_ctrl_c1;
 
     S32G2mc_meState mc_me;
+    S32G2rdcState rdc;
 
 };
 
