@@ -83,6 +83,7 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_I2C0]  = 0x401E4000,
     [S32G2_DEV_I2C1]  = 0x401E8000,
     [S32G2_DEV_I2C2]  = 0x401Ec000,
+    [S32G2_DEV_MC_CGM]  = 0x40030000,
     [S32G2_DEV_RDC]    = 0x40080000,
     [S32G2_DEV_MC_ME]  = 0x40088000,
     [S32G2_DEV_GIC_DIST]   = 0x50801000,
@@ -366,6 +367,7 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "mmc0", &s->mmc0, TYPE_AW_SDHOST_SUN5I);
     object_initialize_child(obj, "sram_ctrl_c0", &s->sram_ctrl_c0, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "sram_ctrl_c1", &s->sram_ctrl_c1, TYPE_S32G2_SRAMC);
+    object_initialize_child(obj, "mc_cgm", &s->mc_cgm, TYPE_S32G2_MC_CGM);
     object_initialize_child(obj, "mc_me", &s->mc_me, TYPE_S32G2_MC_ME);
     object_initialize_child(obj, "rdc", &s->rdc, TYPE_S32G2_RDC);
 
@@ -479,6 +481,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->sram_ctrl_c1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->sram_ctrl_c1), 0, s->memmap[S32G2_DEV_SRAM_CTRL_C1]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm), 0, s->memmap[S32G2_DEV_MC_CGM]);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_me), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_me), 0, s->memmap[S32G2_DEV_MC_ME]);

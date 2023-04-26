@@ -34,6 +34,27 @@
 			},
 			"size":"0x800"
 		},
+		"MC_CGM":{
+			"soc": "s32g2",
+			"name": "mc_cgm",
+			"offset" : "0x40030000",
+			"description": "Clock Generation Module",
+			"helpers": "",
+			"registers": {
+				"MUX_0_CSC" : {
+					"offset": "0x300",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, 0);"
+				},
+				"MUX_0_CSS" : {
+					"offset": "0x304",
+					"reset": "0x80000",
+					"action": "ignore"
+				}
+
+			},
+			"size":"0x800"
+		},
 		"RDC":{
 			"soc": "s32g2",
 			"name": "rdc",
