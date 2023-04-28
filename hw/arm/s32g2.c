@@ -84,8 +84,12 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_I2C1]  = 0x401E8000,
     [S32G2_DEV_I2C2]  = 0x401Ec000,
     [S32G2_DEV_MC_CGM]  = 0x40030000,
+    [S32G2_DEV_MC_RGM]  = 0x40078000,
     [S32G2_DEV_RDC]    = 0x40080000,
     [S32G2_DEV_MC_ME]  = 0x40088000,
+    [S32G2_DEV_LINFLEX0]   = 0x401C8000,
+    [S32G2_DEV_LINFLEX1]   = 0x401CC000,
+    [S32G2_DEV_LINFLEX2]   = 0x402BC000,
     [S32G2_DEV_GIC_DIST]   = 0x50801000,
     [S32G2_DEV_GIC_CPU]    = 0x50802000,
     [S32G2_DEV_GIC_HYP]    = 0x50804000,
@@ -160,8 +164,8 @@ struct S32G2Unimplemented {
     { "s-brom",    0xffff0000, 64 * KiB }
 #endif
     { "concerto",  0x50400000, 1 * MiB },
-    { "MC_RGM",    0x40078000, 12 * KiB },
-    { "SIUL2_0",   0x4009C000, 20 * KiB }
+    { "SIUL2_0",   0x4009C000, 20 * KiB },
+    { "SIUL2_1",   0x44010000, 20 * KiB }
 
 };
 
@@ -320,9 +324,9 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
     
     printf("Entry offset=0x%08x\n", entry_offset + boot_offset + 0x40 );
 
-    app_code += entry_offset;
+    /* app_code += entry_offset;
     app_code_curr = (uint32_t*)app_code; 
-    printf("First entry code=0x%08x\n", *app_code_curr);
+    printf("First entry code=0x%08x\n", *app_code_curr); */
 #if 0
     for(int i=0; i < 100; i++)
     {
@@ -330,8 +334,8 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 		    printf("%d: 0x%08x\n", i, ptr[i]);
     }
 #endif
-    rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length,
-                  s32g2_app_img.length, s32g2_app_img.ram_entry,
+    rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length + entry_offset,
+                  s32g2_app_img.length + entry_offset, s32g2_app_img.ram_start,
                   NULL, NULL, NULL, NULL, false);
 }
 
@@ -368,8 +372,12 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "sram_ctrl_c0", &s->sram_ctrl_c0, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "sram_ctrl_c1", &s->sram_ctrl_c1, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "mc_cgm", &s->mc_cgm, TYPE_S32G2_MC_CGM);
+    object_initialize_child(obj, "mc_rgm", &s->mc_rgm, TYPE_S32G2_MC_RGM);
     object_initialize_child(obj, "mc_me", &s->mc_me, TYPE_S32G2_MC_ME);
     object_initialize_child(obj, "rdc", &s->rdc, TYPE_S32G2_RDC);
+    object_initialize_child(obj, "linflex0", &s->linflex0, TYPE_S32G2_LINFLEX);
+    object_initialize_child(obj, "linflex1", &s->linflex1, TYPE_S32G2_LINFLEX);
+    object_initialize_child(obj, "linflex2", &s->linflex2, TYPE_S32G2_LINFLEX);
 
 #if 0
     object_initialize_child(obj, "emac", &s->emac, TYPE_AW_SUN8I_EMAC);
@@ -485,11 +493,23 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm), 0, s->memmap[S32G2_DEV_MC_CGM]);
 
+    sysbus_realize(SYS_BUS_DEVICE(&s->mc_rgm), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_rgm), 0, s->memmap[S32G2_DEV_MC_RGM]);
+
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_me), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_me), 0, s->memmap[S32G2_DEV_MC_ME]);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->rdc), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->rdc), 0, s->memmap[S32G2_DEV_RDC]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->linflex0), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->linflex0), 0, s->memmap[S32G2_DEV_LINFLEX0]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->linflex1), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->linflex1), 0, s->memmap[S32G2_DEV_LINFLEX1]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->linflex2), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->linflex2), 0, s->memmap[S32G2_DEV_LINFLEX2]);
 
     memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
                             32 * KiB, &error_abort);

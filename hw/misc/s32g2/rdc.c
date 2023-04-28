@@ -56,7 +56,7 @@ static uint64_t s32g2_rdc_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);
+    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 
@@ -79,15 +79,16 @@ static void s32g2_rdc_write(void *opaque, hwaddr offset,
 		case REG_RD1_STAT:
 			return;
 		case REG_RD3_CTRL:
-			if(val==0xF)PERFORM_WRITE(REG_RD3_STAT, 0x18);
-if(val==0x7)PERFORM_WRITE(REG_RD3_STAT, 0);
+PERFORM_WRITE(REG_RD3_CTRL, val);
+			if((val&0x8)==0x8)PERFORM_WRITE(REG_RD3_STAT, 0x18);
+if((val&0x8)==0)PERFORM_WRITE(REG_RD3_STAT, 0);
 ;			break;
 		case REG_RD3_STAT:
 			return;
 
     default:
-        s->regs[idx] = (uint32_t) val;
         printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+        s->regs[idx] = (uint32_t) val;
         break;
     }
 }

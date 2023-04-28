@@ -44,7 +44,7 @@
 				"MUX_0_CSC" : {
 					"offset": "0x300",
 					"reset": "0x0",
-					"action": "PERFORM_WRITE(REG_MUX_0_CSC, 0);"
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, BIT(17));"
 				},
 				"MUX_0_CSS" : {
 					"offset": "0x304",
@@ -54,6 +54,25 @@
 
 			},
 			"size":"0x800"
+		},
+		"MC_RGM":{
+			"soc": "s32g2",
+			"name": "mc_rgm",
+			"offset" : "0x40078000",
+			"description": "Reset Generation Module",
+			"helpers": "",
+			"registers": {
+				"DES" : {
+					"offset": "0x0",
+					"reset": "0x1"
+				},
+				"FES" : {
+					"offset": "0x8",
+					"reset": "0x0"
+				}
+
+			},
+			"size":"0x200"
 		},
 		"RDC":{
 			"soc": "s32g2",
@@ -73,7 +92,7 @@
 				"RD3_CTRL" : {
 					"offset": "0xC",
 					"reset": "0xf",
-					"action": "if(val==0xF)PERFORM_WRITE(REG_RD3_STAT, 0x18);\nif(val==0x7)PERFORM_WRITE(REG_RD3_STAT, 0);"
+					"action": "if((val&0x8)==0x8)PERFORM_WRITE(REG_RD3_STAT, 0x18);\nif((val&0x8)==0)PERFORM_WRITE(REG_RD3_STAT, 0);"
 				},
 				"RD1_STAT" : {
 					"offset": "0x84",
@@ -93,6 +112,38 @@
 
 			},
 			"size":"0x100"
+		},
+		"LINFlex":{
+			"soc": "s32g2",
+			"name": "linFlex",
+			"offset" : ["0x401C8000", "0x401CC000", "0x402BC000"],
+			"description": "LinFlexD",
+			"helpers": "static unsigned int in_init=0;\nstatic unsigned int is_master=0;\nstatic unsigned int uart_mode=0;\nstatic unsigned int tx_fifo_mode=0;\nunsigned int tx_enable=0;",
+			"registers": {
+				"LINCR1" : {
+					"offset": "0x0",
+					"reset": "0x82",
+					"action":"if((val&0x1)==0x1) { in_init=1; PERFORM_WRITE(REG_LINSR, 1<<12);} else { in_init=0;};\nif((val&0x10)==0x10) { is_master=1;} else { is_master=0;}"
+				},
+				"LINSR" : {
+					"offset": "0x8",
+					"reset": "0x40",
+					"action":"ignore"
+				},
+				"UARTCR1" : {
+					"offset": "0x10",
+					"reset": "0x0",
+					"action":"if(in_init==0x1){ if((val&0x1)==0x1) { uart_mode=1;} else { uart_mode=0;}\nif((val&(BIT(8)))==1){tx_fifo_mode=1;} else { tx_fifo_mode=0; }\n if((val&(BIT(4)))==1){tx_enable=0;} else { tx_enable=0; }}"
+				},
+				"BDRL" : {
+					"offset": "0x38",
+					"reset": "0x0",
+					"action":"printf(\"%c\", (int)val);return; /* TODO: How to use qemu serial output? */"
+				}
+
+			},
+			"size":"0x100",
+			"min_access":1
 		}
 	}
 }

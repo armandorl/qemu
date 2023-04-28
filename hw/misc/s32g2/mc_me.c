@@ -66,7 +66,7 @@ static uint64_t s32g2_mc_me_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);
+    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 
@@ -87,6 +87,7 @@ static void s32g2_mc_me_write(void *opaque, hwaddr offset,
 		case REG_PRTN3_STAT:
 			return;
 		case REG_CTRL_KEY:
+PERFORM_WRITE(REG_CTRL_KEY, val);
 			if(conf_control==0) conf_control++;
 if(conf_control==1) {
 timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
@@ -96,8 +97,8 @@ timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}
 			return;
 
     default:
-        s->regs[idx] = (uint32_t) val;
         printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+        s->regs[idx] = (uint32_t) val;
         break;
     }
 }

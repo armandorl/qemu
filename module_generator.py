@@ -40,10 +40,18 @@ with  open(module_file) as f:
                 action = data['module'][module]['registers'][reg]['action']
             except:
                 action = None
+            try:
+                min_access = data['module'][module]['min_access']
+            except:
+                min_access = 4
+            try:
+                max_access = data['module'][module]['max_access']
+            except:
+                max_access = 4
             module_register_map= module_register_map +  "\tREG_" + reg + "=\t" + offset + ",\n"
             module_register_reset= module_register_reset + "\tPERFORM_WRITE(REG_" + reg + "," + val + ");\n"
             if action != None and action != 'ignore':
-                module_register_write= module_register_write + "\t\tcase REG_" + reg + ":\n\t\t\t" + action + "\n;\t\t\tbreak;\n"
+                module_register_write= module_register_write + "\t\tcase REG_" + reg + ":\nPERFORM_WRITE(REG_" + reg + ", val);\n\t\t\t" + action + "\n;\t\t\tbreak;\n"
             elif action == 'ignore':
                 module_register_write= module_register_write + "\t\tcase REG_" + reg + ":\n\t\t\treturn;\n"
         module_register_map= module_register_map + "};\n"
@@ -62,7 +70,10 @@ with  open(module_file) as f:
                                     registers_reset=module_register_reset,
                                     registers_write=module_register_write,
                                     module_size=module_size,
-                                    helpers=module_helpers))
+                                    helpers=module_helpers,
+                                    module_min_access=min_access,
+                                    module_max_access=max_access,
+                                    ))
                 except Exception as e:
                     print("ERROR: Failed to write source... " + str(e))
         

@@ -42,16 +42,13 @@
 #include "hw/misc/s32g2/sramc.h"
 #include "hw/misc/s32g2/mc_me.h"
 #include "hw/misc/s32g2/mc_cgm.h"
+#include "hw/misc/s32g2/mc_rgm.h"
 #include "hw/misc/s32g2/rdc.h"
+#include "hw/misc/s32g2/linFlex.h"
 
 
 /**
- * Allwinner H3 device list
- *
- * This enumeration is can be used refer to a particular device in the
- * Allwinner H3 SoC. For example, the physical memory base address for
- * each device can be found in the S32G2State object in the memmap member
- * using the device enum value as index.
+ * S32g2 device list
  *
  * @see S32G2State
  */
@@ -113,7 +110,11 @@ enum {
     S32G2_DEV_I2C2,
     S32G2_DEV_MC_ME,
     S32G2_DEV_MC_CGM,
-    S32G2_DEV_RDC
+    S32G2_DEV_MC_RGM,
+    S32G2_DEV_RDC,
+    S32G2_DEV_LINFLEX0,
+    S32G2_DEV_LINFLEX1,
+    S32G2_DEV_LINFLEX2
 };
 
 /** Total number of CPU cores in the H3 SoC */
@@ -170,7 +171,11 @@ struct S32G2State {
 
     S32G2mc_meState mc_me;
     S32G2mc_cgmState mc_cgm;
+    S32G2mc_rgmState mc_rgm;
     S32G2rdcState rdc;
+    S32G2linFlexState linflex0;
+    S32G2linFlexState linflex1;
+    S32G2linFlexState linflex2;
 
 };
 

@@ -52,7 +52,7 @@ static uint64_t s32g2_mc_cgm_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);
+    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 
@@ -73,12 +73,14 @@ static void s32g2_mc_cgm_write(void *opaque, hwaddr offset,
 		case REG_MUX_0_CSS:
 			return;
 		case REG_MUX_0_CSC:
-			PERFORM_WRITE(REG_MUX_0_CSC, 0);
+PERFORM_WRITE(REG_MUX_0_CSC, val);
+			PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */
+PERFORM_WRITE(REG_MUX_0_CSS, BIT(17));
 ;			break;
 
     default:
-        s->regs[idx] = (uint32_t) val;
         printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+        s->regs[idx] = (uint32_t) val;
         break;
     }
 }
