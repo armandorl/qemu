@@ -66,7 +66,7 @@ static uint64_t s32g2_mc_me_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); 
+    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);  */
     return retVal;
 }
 
@@ -99,8 +99,9 @@ timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}
     default:
         printf("%s offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
-        break;
+        return;
     }
+    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
 }
 
 static const MemoryRegionOps s32g2_mc_me_ops = {

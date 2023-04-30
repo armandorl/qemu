@@ -144,6 +144,84 @@
 			},
 			"size":"0x100",
 			"min_access":1
+		},
+		"DDRSS":{
+			"soc": "s32g2",
+			"name": "ddrss",
+			"offset" : "0x403C0000",
+			"description": "DDR Subsystem",
+			"helpers": "",
+			"registers": {
+				"STAT" : {
+					"offset": "0x4",
+					"reset": "0x0",
+					"action":"ignore"
+				},
+				"DFIMISC" : {
+					"offset": "0x1b0",
+					"reset": "0x41",
+					"action":"if((val&BIT(5))==BIT(5)) PERFORM_WRITE(REG_DFISTAT, BIT(0));\nif((val&BIT(0))==BIT(0)) PERFORM_WRITE(REG_STAT, 1);"
+				},
+				"DFISTAT" : {
+					"offset": "0x1bc",
+					"reset": "0x0",
+					"action":"ignore"
+				},
+				"SWCTL" : {
+					"offset": "0x320",
+					"reset": "0x0",
+					"action":"PERFORM_WRITE(REG_SWSTAT, val);"
+				},
+				"SWSTAT" : {
+					"offset": "0x324",
+					"reset": "0x0",
+					"action":"ignore"
+				},
+				"SBRCTL" : {
+					"offset": "0xf24",
+					"reset": "0x0",
+					"action":"if((val&BIT(0))==BIT(0)) PERFORM_WRITE(REG_SBRSTAT, BIT(1));"
+				},
+				"SBRSTAT" : {
+					"offset": "0xf28",
+					"reset": "0x0",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x1000",
+			"min_access":1
+		},
+		"DDRPHY":{
+			"soc": "s32g2",
+			"name": "ddrphy",
+			"offset" : "0x40380000",
+			"description": "DDR PHY",
+			"helpers": "",
+			"registers": {
+				"NAME1" : {
+					"offset": "0x420",
+					"reset": "0x0",
+					"action":"PERFORM_WRITE(REG_UCTSHADOW, 0);"
+				},
+				"NAME2" : {
+					"offset": "0x40c",
+					"reset": "0x0",
+					"action":"PERFORM_WRITE(REG_UCTSHADOW, 1);"
+				},
+				"UCTSHADOW" : {
+					"offset": "0x404",
+					"reset": "0x0",
+					"action":"ignore"
+				},
+				"UCTWRITEONLY" : {
+					"offset": "0x410",
+					"reset": "0x7"
+				}
+
+			},
+			"size":"0x10000",
+			"min_access":1
 		}
 	}
 }

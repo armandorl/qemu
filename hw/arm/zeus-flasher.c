@@ -43,12 +43,6 @@ static void zeusflasher_init(MachineState *machine)
         exit(1);
     }
 
-    /* This board has fixed size RAM */
-    if (machine->ram_size != 1 * GiB) {
-        error_report("This machine can only be used with 1GiB of RAM");
-        exit(1);
-    }
-
     /* Only allow Cortex-A53 for this board */
     if ((strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-a53")) != 0) && 
 	(strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-m7")) != 0)  ) {
@@ -97,10 +91,6 @@ static void zeusflasher_init(MachineState *machine)
     qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
     qdev_realize_and_unref(carddev, bus, &error_fatal);
 
-    /* SDRAM */
-    memory_region_add_subregion(get_system_memory(), s32g2_st->memmap[S32G2_DEV_DRAM],
-                                machine->ram);
-
     hwaddr entry = 0;
     /* Load target kernel or start using BootROM */
     if (!machine->kernel_filename && blk && blk_is_available(blk)) {
@@ -130,7 +120,7 @@ static void zeusflasher_machine_init(MachineClass *mc)
     mc->max_cpus = S32G2_NUM_CPUS;
     mc->default_cpus = S32G2_NUM_CPUS;
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-a53");
-    mc->default_ram_size = 1 * GiB;
+    mc->default_ram_size = 2 * GiB;
     mc->default_ram_id = "zeus-flasher.ram";
 }
 

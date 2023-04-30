@@ -58,7 +58,7 @@ static uint64_t s32g2_linFlex_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); 
+    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);  */
     return retVal;
 }
 
@@ -97,8 +97,9 @@ PERFORM_WRITE(REG_BDRL, val);
     default:
         printf("%s offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
-        break;
+        return;
     }
+    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
 }
 
 static const MemoryRegionOps s32g2_linFlex_ops = {

@@ -45,6 +45,8 @@
 #include "hw/misc/s32g2/mc_rgm.h"
 #include "hw/misc/s32g2/rdc.h"
 #include "hw/misc/s32g2/linFlex.h"
+#include "hw/misc/s32g2/ddrss.h"
+#include "hw/misc/s32g2/ddrphy.h"
 
 
 /**
@@ -99,8 +101,10 @@ enum {
     S32G2_DEV_DRAM,
     S32G2_DEV_SRAM_CTRL_C0,
     S32G2_DEV_SRAM_CTRL_C1,
+    S32G2_DEV_SRAM_CTRL_STDBY,
     S32G2_DEV_SRAM_C0,
     S32G2_DEV_SRAM_C1,
+    S32G2_DEV_SRAM_STDBY,
     S32G2_DEV_SPI0,
     S32G2_DEV_SPI1,
     S32G2_DEV_SPI2,
@@ -114,7 +118,9 @@ enum {
     S32G2_DEV_RDC,
     S32G2_DEV_LINFLEX0,
     S32G2_DEV_LINFLEX1,
-    S32G2_DEV_LINFLEX2
+    S32G2_DEV_LINFLEX2,
+    S32G2_DEV_DDRSS,
+    S32G2_DEV_DDRPHY
 };
 
 /** Total number of CPU cores in the H3 SoC */
@@ -165,9 +171,12 @@ struct S32G2State {
     MemoryRegion sram_c;
     MemoryRegion sram_c0;
     MemoryRegion sram_c1;
+    MemoryRegion sram_stdby;
+    MemoryRegion ddr;
 
     S32G2SramcState sram_ctrl_c0;
     S32G2SramcState sram_ctrl_c1;
+    S32G2SramcState sram_ctrl_stdby;
 
     S32G2mc_meState mc_me;
     S32G2mc_cgmState mc_cgm;
@@ -176,6 +185,8 @@ struct S32G2State {
     S32G2linFlexState linflex0;
     S32G2linFlexState linflex1;
     S32G2linFlexState linflex2;
+    S32G2ddrssState ddrss;
+    S32G2ddrphyState ddrphy;
 
 };
 

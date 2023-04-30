@@ -77,6 +77,8 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_SRAM_C0] = 0x4019C014,
     [S32G2_DEV_SRAM_CTRL_C1] = 0x401A0000,
     [S32G2_DEV_SRAM_C1] = 0x401A0014,
+    [S32G2_DEV_SRAM_CTRL_STDBY] = 0x44028000,
+    [S32G2_DEV_SRAM_STDBY] = 0x44028014,
     [S32G2_DEV_SPI0]  = 0x401d4000,
     [S32G2_DEV_SPI1]  = 0x401d8000,
     [S32G2_DEV_SPI2]  = 0x401dc000,
@@ -90,6 +92,8 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_LINFLEX0]   = 0x401C8000,
     [S32G2_DEV_LINFLEX1]   = 0x401CC000,
     [S32G2_DEV_LINFLEX2]   = 0x402BC000,
+    [S32G2_DEV_DDRPHY]     = 0x40380000,
+    [S32G2_DEV_DDRSS]      = 0x403C0000,
     [S32G2_DEV_GIC_DIST]   = 0x50801000,
     [S32G2_DEV_GIC_CPU]    = 0x50802000,
     [S32G2_DEV_GIC_HYP]    = 0x50804000,
@@ -164,7 +168,13 @@ struct S32G2Unimplemented {
     { "s-brom",    0xffff0000, 64 * KiB }
 #endif
     { "concerto",  0x50400000, 1 * MiB },
+    { "FCCU",      0x4030C000, 12 * KiB },
+    { "MC_CGM5",   0x40068000, 12 * KiB },
+    { "SRC",       0x4007C000, 12 * KiB },
     { "SIUL2_0",   0x4009C000, 20 * KiB },
+    { "DDRSS1",    0x40390000, 0x20000 },
+    { "DDRSS2",    0x403A0000, 0x20000 },
+    { "DDRSS3",    0x403D0000, 0x20000 },
     { "SIUL2_1",   0x44010000, 20 * KiB }
 
 };
@@ -337,6 +347,9 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
     rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length + entry_offset,
                   s32g2_app_img.length + entry_offset, s32g2_app_img.ram_start,
                   NULL, NULL, NULL, NULL, false);
+    rom_add_blob("qspi.bootrom", buffer, rom_size,
+                  rom_size, 0,
+                  NULL, NULL, NULL, NULL, false);
 }
 
 static void s32g2_init(Object *obj)
@@ -371,6 +384,7 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "mmc0", &s->mmc0, TYPE_AW_SDHOST_SUN5I);
     object_initialize_child(obj, "sram_ctrl_c0", &s->sram_ctrl_c0, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "sram_ctrl_c1", &s->sram_ctrl_c1, TYPE_S32G2_SRAMC);
+    object_initialize_child(obj, "sram_ctrl_stdby", &s->sram_ctrl_stdby, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "mc_cgm", &s->mc_cgm, TYPE_S32G2_MC_CGM);
     object_initialize_child(obj, "mc_rgm", &s->mc_rgm, TYPE_S32G2_MC_RGM);
     object_initialize_child(obj, "mc_me", &s->mc_me, TYPE_S32G2_MC_ME);
@@ -378,6 +392,8 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "linflex0", &s->linflex0, TYPE_S32G2_LINFLEX);
     object_initialize_child(obj, "linflex1", &s->linflex1, TYPE_S32G2_LINFLEX);
     object_initialize_child(obj, "linflex2", &s->linflex2, TYPE_S32G2_LINFLEX);
+    object_initialize_child(obj, "ddrss", &s->ddrss, TYPE_S32G2_DDRSS);
+    object_initialize_child(obj, "ddrphy", &s->ddrphy, TYPE_S32G2_DDRPHY);
 
 #if 0
     object_initialize_child(obj, "emac", &s->emac, TYPE_AW_SUN8I_EMAC);
@@ -490,6 +506,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->sram_ctrl_c1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->sram_ctrl_c1), 0, s->memmap[S32G2_DEV_SRAM_CTRL_C1]);
 
+    sysbus_realize(SYS_BUS_DEVICE(&s->sram_ctrl_stdby), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sram_ctrl_stdby), 0, s->memmap[S32G2_DEV_SRAM_CTRL_STDBY]);
+
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm), 0, s->memmap[S32G2_DEV_MC_CGM]);
 
@@ -511,27 +530,37 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->linflex2), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->linflex2), 0, s->memmap[S32G2_DEV_LINFLEX2]);
 
+    sysbus_realize(SYS_BUS_DEVICE(&s->ddrss), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddrss), 0, s->memmap[S32G2_DEV_DDRSS]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->ddrphy), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddrphy), 0, s->memmap[S32G2_DEV_DDRPHY]);
+
     memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
                             32 * KiB, &error_abort);
     memory_region_init_ram(&s->sram_c0, OBJECT(dev), "sram_c0",
                             12 * KiB, &error_abort);
     memory_region_init_ram(&s->sram_c1, OBJECT(dev), "sram_c1",
                             12 * KiB, &error_abort);
+    memory_region_init_ram(&s->sram_stdby, OBJECT(dev), "sram_stdby",
+                            12 * KiB, &error_abort);
     memory_region_init_ram(&s->sram_a2, OBJECT(dev), "ssram",
                             8 * MiB, &error_abort);
-    memory_region_init_ram(&s->sram_c, OBJECT(dev), "dram",
-                            1 * GiB, &error_abort);
+    memory_region_init_ram(&s->ddr, OBJECT(dev), "dram",
+                            2 * GiB, &error_abort);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM],
                                 &s->sram_a1);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SSRAM],
                                 &s->sram_a2);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM],
-                                &s->sram_c);
+                                &s->ddr);
 
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C0],
                                 &s->sram_c0);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C1],
                                 &s->sram_c1);
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_STDBY],
+                                &s->sram_stdby);
 #if 0
     /* Clock Control Unit */
     sysbus_realize(SYS_BUS_DEVICE(&s->ccu), &error_fatal);
