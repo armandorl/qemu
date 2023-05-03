@@ -71,6 +71,7 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_SDRAM]      = 0x40000000
 #endif
     [S32G2_DEV_QSPI]  = 0x00000000,
+    [S32G2_DEV_QSPI_BUFFER]  = 0x00000000,
     [S32G2_DEV_SRAM]  = 0x24000000,
     [S32G2_DEV_SSRAM] = 0x34000000,
     [S32G2_DEV_SRAM_CTRL_C0] = 0x4019C000,
@@ -86,18 +87,32 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_I2C1]  = 0x401E8000,
     [S32G2_DEV_I2C2]  = 0x401Ec000,
     [S32G2_DEV_MC_CGM]  = 0x40030000,
+    [S32G2_DEV_MC_CGM1]  = 0x40034000,
+    [S32G2_DEV_MC_CGM5]  = 0x40068000,
+    [S32G2_DEV_PLL]     = 0x40038000,
+    [S32G2_DEV_PERIPH_PLL]     = 0x4003C000,
+    [S32G2_DEV_DDR_PLL]     = 0x40044000,
+    [S32G2_DEV_XOSC]    = 0x40050000,
+    [S32G2_DEV_DFS]    = 0x40054000,
+    [S32G2_DEV_PERIPH_DFS]    = 0x40058000,
     [S32G2_DEV_MC_RGM]  = 0x40078000,
     [S32G2_DEV_RDC]    = 0x40080000,
     [S32G2_DEV_MC_ME]  = 0x40088000,
+    [S32G2_DEV_WKPU]  =  0x40090000,
+    [S32G2_DEV_SIUL2]  =  0x4009C000,
     [S32G2_DEV_LINFLEX0]   = 0x401C8000,
     [S32G2_DEV_LINFLEX1]   = 0x401CC000,
     [S32G2_DEV_LINFLEX2]   = 0x402BC000,
     [S32G2_DEV_DDRPHY]     = 0x40380000,
     [S32G2_DEV_DDRSS]      = 0x403C0000,
-    [S32G2_DEV_GIC_DIST]   = 0x50801000,
-    [S32G2_DEV_GIC_CPU]    = 0x50802000,
-    [S32G2_DEV_GIC_HYP]    = 0x50804000,
-    [S32G2_DEV_GIC_VCPU]   = 0x50806000,
+    [S32G2_DEV_GIC_DIST]   = 0x50800000,
+    [S32G2_DEV_GIC_RDIST0]   = 0x50880000,
+    [S32G2_DEV_GIC_RDIST1]   = 0x508A0000,
+    [S32G2_DEV_GIC_RDIST2]   = 0x508C0000,
+    [S32G2_DEV_GIC_RDIST3]   = 0x508E0000,
+    [S32G2_DEV_GIC_CPU]    = 0x50400000,
+    [S32G2_DEV_GIC_HYP]    = 0x50410000,
+    [S32G2_DEV_GIC_VCPU]   = 0x50420000,
     [S32G2_DEV_DRAM]  = 0x80000000
 
 };
@@ -168,10 +183,10 @@ struct S32G2Unimplemented {
     { "s-brom",    0xffff0000, 64 * KiB }
 #endif
     { "concerto",  0x50400000, 1 * MiB },
+    { "OCOTP",     0x400A4000, 4 * KiB },
+    { "I2C4",      0x402DC000, 4 * KiB },
     { "FCCU",      0x4030C000, 12 * KiB },
-    { "MC_CGM5",   0x40068000, 12 * KiB },
     { "SRC",       0x4007C000, 12 * KiB },
-    { "SIUL2_0",   0x4009C000, 20 * KiB },
     { "DDRSS1",    0x40390000, 0x20000 },
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 },
@@ -256,7 +271,7 @@ static s32g2_boot_cfg_t s32g2_boot_cfg = {0};
 static s32g2_app_img_t s32g2_app_img = {0};
 void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 {
-    const int64_t rom_size = 512 * KiB;
+    const int64_t rom_size = 64 * MiB;
     const int64_t rom_offset = 0 * KiB;
     uint32_t boot_offset = 0;
     
@@ -363,7 +378,7 @@ static void s32g2_init(Object *obj)
                                 ARM_CPU_TYPE_NAME("cortex-a53"));
     }
 
-    object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GIC);
+    object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
 #if 0
     object_initialize_child(obj, "timer", &s->timer, TYPE_AW_A10_PIT);
     object_property_add_alias(obj, "clk0-freq", OBJECT(&s->timer),
@@ -386,8 +401,18 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "sram_ctrl_c1", &s->sram_ctrl_c1, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "sram_ctrl_stdby", &s->sram_ctrl_stdby, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "mc_cgm", &s->mc_cgm, TYPE_S32G2_MC_CGM);
+    object_initialize_child(obj, "mc_cgm1", &s->mc_cgm1, TYPE_S32G2_MC_CGM1);
+    object_initialize_child(obj, "mc_cgm5", &s->mc_cgm5, TYPE_S32G2_MC_CGM5);
     object_initialize_child(obj, "mc_rgm", &s->mc_rgm, TYPE_S32G2_MC_RGM);
     object_initialize_child(obj, "mc_me", &s->mc_me, TYPE_S32G2_MC_ME);
+    object_initialize_child(obj, "wkpu", &s->wkpu, TYPE_S32G2_WKPU);
+    object_initialize_child(obj, "xosc", &s->xosc, TYPE_S32G2_XOSC);
+    object_initialize_child(obj, "dfs", &s->dfs, TYPE_S32G2_DFS);
+    object_initialize_child(obj, "periph_dfs", &s->periph_dfs, TYPE_S32G2_DFS);
+    object_initialize_child(obj, "siul2", &s->siul2, TYPE_S32G2_SIUL2);
+    object_initialize_child(obj, "pll", &s->pll, TYPE_S32G2_PLL);
+    object_initialize_child(obj, "periph_pll", &s->periph_pll, TYPE_S32G2_PLL);
+    object_initialize_child(obj, "ddr_pll", &s->ddr_pll, TYPE_S32G2_PLL);
     object_initialize_child(obj, "rdc", &s->rdc, TYPE_S32G2_RDC);
     object_initialize_child(obj, "linflex0", &s->linflex0, TYPE_S32G2_LINFLEX);
     object_initialize_child(obj, "linflex1", &s->linflex1, TYPE_S32G2_LINFLEX);
@@ -437,16 +462,21 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     /* Generic Interrupt Controller */
     qdev_prop_set_uint32(DEVICE(&s->gic), "num-irq", S32G2_GIC_NUM_SPI +
                                                      GIC_INTERNAL);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 2);
+    qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 3);
     qdev_prop_set_uint32(DEVICE(&s->gic), "num-cpu", S32G2_NUM_CPUS);
-    qdev_prop_set_bit(DEVICE(&s->gic), "has-security-extensions", false);
-    qdev_prop_set_bit(DEVICE(&s->gic), "has-virtualization-extensions", true);
+    qdev_prop_set_uint32(DEVICE(&s->gic), "len-redist-region-count", 4);
+    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[0]", 1);
+    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[1]", 1);
+    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[2]", 1);
+    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[3]", 1);
+    qdev_prop_set_bit(DEVICE(&s->gic), "has-security-extensions", true);
     sysbus_realize(SYS_BUS_DEVICE(&s->gic), &error_fatal);
 
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 0, s->memmap[S32G2_DEV_GIC_DIST]);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 1, s->memmap[S32G2_DEV_GIC_CPU]);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 2, s->memmap[S32G2_DEV_GIC_HYP]);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 3, s->memmap[S32G2_DEV_GIC_VCPU]);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 1, s->memmap[S32G2_DEV_GIC_RDIST0]);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 2, s->memmap[S32G2_DEV_GIC_RDIST1]);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 3, s->memmap[S32G2_DEV_GIC_RDIST2]);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 4, s->memmap[S32G2_DEV_GIC_RDIST3]);
 
     /*
      * Wire the outputs from each CPU's generic timer and the GICv3
@@ -486,9 +516,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
 
         /* GIC maintenance signal */
-        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + (4 * S32G2_NUM_CPUS),
+        /* sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + (4 * S32G2_NUM_CPUS),
                            qdev_get_gpio_in(DEVICE(&s->gic),
-                                            ppibase + S32G2_GIC_PPI_MAINT));
+                                            ppibase + S32G2_GIC_PPI_MAINT)); */
     }
 #if 0
     /* Timer */
@@ -512,11 +542,41 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm), 0, s->memmap[S32G2_DEV_MC_CGM]);
 
+    sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm1), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm1), 0, s->memmap[S32G2_DEV_MC_CGM1]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm5), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm5), 0, s->memmap[S32G2_DEV_MC_CGM5]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->xosc), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->xosc), 0, s->memmap[S32G2_DEV_XOSC]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->dfs), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->dfs), 0, s->memmap[S32G2_DEV_DFS]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->periph_dfs), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->periph_dfs), 0, s->memmap[S32G2_DEV_PERIPH_DFS]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->siul2), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->siul2), 0, s->memmap[S32G2_DEV_SIUL2]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->pll), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->pll), 0, s->memmap[S32G2_DEV_PLL]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->periph_pll), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->periph_pll), 0, s->memmap[S32G2_DEV_PERIPH_PLL]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->ddr_pll), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr_pll), 0, s->memmap[S32G2_DEV_DDR_PLL]);
+
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_rgm), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_rgm), 0, s->memmap[S32G2_DEV_MC_RGM]);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_me), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_me), 0, s->memmap[S32G2_DEV_MC_ME]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->wkpu), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->wkpu), 0, s->memmap[S32G2_DEV_WKPU]);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->rdc), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->rdc), 0, s->memmap[S32G2_DEV_RDC]);
@@ -548,6 +608,8 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                             8 * MiB, &error_abort);
     memory_region_init_ram(&s->ddr, OBJECT(dev), "dram",
                             2 * GiB, &error_abort);
+    memory_region_init_ram(&s->qspi_buffer, OBJECT(dev), "qspi_buffer",
+                            64 * MiB, &error_abort);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM],
                                 &s->sram_a1);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SSRAM],
@@ -561,6 +623,8 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                                 &s->sram_c1);
     memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_STDBY],
                                 &s->sram_stdby);
+    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_QSPI_BUFFER],
+                                &s->qspi_buffer);
 #if 0
     /* Clock Control Unit */
     sysbus_realize(SYS_BUS_DEVICE(&s->ccu), &error_fatal);

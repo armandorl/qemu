@@ -1,59 +1,303 @@
 {
 	"module": {
-		"MC_ME":{
-			"soc": "s32g2",
-			"name": "mc_me",
-			"offset" : "0x40088000",
-			"description": "Mode Entry Module",
-			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
-			"registers": {
-				"CTRL_KEY" : {
-					"offset": "0x0",
-					"reset": "0x5af0",
-					"action": "if(conf_control==0) conf_control++;\nif(conf_control==1) {\ntimer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}"
-				},
-				"MODE_STAT" : {
-					"offset": "0xC",
-					"reset": "0",
-					"action":"ignore"
-				},
-				"PRTN3_PCONF" : {
-					"offset": "0x700",
-					"reset": "0"
-				},
-				"PRTN3_PUPD" : {
-					"offset": "0x704",
-					"reset": "0"
-				},
-				"PRTN3_STAT" : {
-					"offset": "0x708",
-					"reset": "0",
-					"action":"ignore"
-				}
-
-			},
-			"size":"0x800"
-		},
 		"MC_CGM":{
 			"soc": "s32g2",
 			"name": "mc_cgm",
 			"offset" : "0x40030000",
-			"description": "Clock Generation Module",
+			"description": "Clock Generation Module 0",
 			"helpers": "",
 			"registers": {
 				"MUX_0_CSC" : {
 					"offset": "0x300",
 					"reset": "0x0",
-					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x0F000000) | BIT(17));"
 				},
 				"MUX_0_CSS" : {
 					"offset": "0x304",
 					"reset": "0x80000",
 					"action": "ignore"
+				},
+				"MUX_1_CSC" : {
+					"offset": "0x340",
+					"reset": "0x02000000",
+					"action": "PERFORM_WRITE(REG_MUX_1_CSC, PERFORM_READ(REG_MUX_1_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_1_CSS, (PERFORM_READ(REG_MUX_1_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_1_CSS" : {
+					"offset": "0x344",
+					"reset": "0x02020000",
+					"action": "ignore"
+				},
+				"MUX_2_CSS" : {
+					"offset": "0x384",
+					"reset": "0x02020000",
+					"action": "ignore"
+				},
+				"MUX_3_CSC" : {
+					"offset": "0x3c0",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_3_CSC, PERFORM_READ(REG_MUX_3_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_3_CSS, (PERFORM_READ(REG_MUX_3_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_3_CSS" : {
+					"offset": "0x3C4",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_4_CSC" : {
+					"offset": "0x400",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_4_CSC, PERFORM_READ(REG_MUX_4_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_4_CSS, (PERFORM_READ(REG_MUX_4_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_4_CSS" : {
+					"offset": "0x404",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_5_CSC" : {
+					"offset": "0x440",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_5_CSC, PERFORM_READ(REG_MUX_5_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_5_CSS, (PERFORM_READ(REG_MUX_5_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_5_CSS" : {
+					"offset": "0x444",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_6_CSC" : {
+					"offset": "0x480",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_6_CSC, PERFORM_READ(REG_MUX_6_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_6_CSS, (PERFORM_READ(REG_MUX_6_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_6_CSS" : {
+					"offset": "0x484",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_7_CSC" : {
+					"offset": "0x4c0",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_7_CSC, PERFORM_READ(REG_MUX_7_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_7_CSS, (PERFORM_READ(REG_MUX_7_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_7_CSS" : {
+					"offset": "0x4c4",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_8_CSC" : {
+					"offset": "0x500",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_8_CSC, PERFORM_READ(REG_MUX_8_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_8_CSS, (PERFORM_READ(REG_MUX_8_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_8_CSS" : {
+					"offset": "0x504",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_9_CSC" : {
+					"offset": "0x540",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_9_CSC, PERFORM_READ(REG_MUX_9_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_9_CSS, (PERFORM_READ(REG_MUX_9_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_9_CSS" : {
+					"offset": "0x544",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_10_CSC" : {
+					"offset": "0x580",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_10_CSC, PERFORM_READ(REG_MUX_10_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_10_CSS, (PERFORM_READ(REG_MUX_10_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_10_CSS" : {
+					"offset": "0x584",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_11_CSC" : {
+					"offset": "0x5C0",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_11_CSC, PERFORM_READ(REG_MUX_11_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_11_CSS, (PERFORM_READ(REG_MUX_11_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_11_CSS" : {
+					"offset": "0x5C4",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_12_CSC" : {
+					"offset": "0x600",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_12_CSC, PERFORM_READ(REG_MUX_12_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_12_CSS, (PERFORM_READ(REG_MUX_12_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_12_CSS" : {
+					"offset": "0x604",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_13_CSS" : {
+					"offset": "0x644",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_14_CSC" : {
+					"offset": "0x680",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_14_CSC, PERFORM_READ(REG_MUX_14_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_14_CSS, (PERFORM_READ(REG_MUX_14_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_14_CSS" : {
+					"offset": "0x684",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_15_CSC" : {
+					"offset": "0x6C0",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_15_CSC, PERFORM_READ(REG_MUX_15_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_15_CSS, (PERFORM_READ(REG_MUX_15_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_15_CSS" : {
+					"offset": "0x6c4",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_16_CSC" : {
+					"offset": "0x700",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_16_CSC, PERFORM_READ(REG_MUX_16_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_16_CSS, (PERFORM_READ(REG_MUX_16_CSC) & 0x1F000000) | BIT(17));"
+				},
+				"MUX_16_CSS" : {
+					"offset": "0x704",
+					"reset": "0x00080000",
+					"action": "ignore"
 				}
 
 			},
 			"size":"0x800"
+		},
+		"MC_CGM1":{
+			"soc": "s32g2",
+			"name": "mc_cgm1",
+			"offset" : "0x40034000",
+			"description": "Clock Generation Module 1",
+			"helpers": "",
+			"registers": {
+				"PCFS_DIVE4" : {
+					"offset": "0x2C",
+					"reset": "0x3E7"
+				},
+				"PCFS_DIVS4" : {
+					"offset": "0x30",
+					"reset": "0x3E7"
+				},
+				"MUX_0_CSC" : {
+					"offset": "0x300",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x07000000) | BIT(17));"
+				},
+				"MUX_0_CSS" : {
+					"offset": "0x304",
+					"reset": "0x00080000"
+				}
+
+			},
+			"size":"0x400"
+		},
+		"MC_CGM5":{
+			"soc": "s32g2",
+			"name": "mc_cgm5",
+			"offset" : "0x40068000",
+			"description": "Clock Generation Module 5",
+			"helpers": "",
+			"registers": {
+				"MUX_0_CSC" : {
+					"offset": "0x300",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x3F000000) | BIT(17));"
+				},
+				"MUX_0_CSS" : {
+					"offset": "0x304",
+					"reset": "0x00080000"
+				}
+
+			},
+			"size":"0x400"
+		},
+		"PLL":{
+			"soc": "s32g2",
+			"name": "pll",
+			"offset" : "0x40038000",
+			"description": "PLL Module",
+			"helpers": "",
+			"registers": {
+				"PLLCR" : {
+					"offset": "0x0",
+					"reset": "0x80000000",
+					"action": "if((val&BIT(31))==BIT(31))PERFORM_WRITE(REG_PLLSR,BIT(2));"
+				},
+				"PLLSR" : {
+					"offset": "0x4",
+					"reset": "0x0300",
+					"action": "ignore"
+				},
+				"PLLDV" : {
+					"offset": "0x8",
+					"reset": "0x0C3F1032"
+				},
+				"PLLFM" : {
+					"offset": "0xC",
+					"reset": "0x40000000"
+				}
+
+			},
+			"size":"0x100"
+		},
+		"XOSC":{
+			"soc": "s32g2",
+			"name": "xosc",
+			"offset" : "0x40050000",
+			"description": "Fast oscilator Module",
+			"helpers": "",
+			"registers": {
+				"CTRL" : {
+					"offset": "0x0",
+					"reset": "0x019D00C0",
+					"action": "if((val&BIT(0))==BIT(0))PERFORM_WRITE(REG_STAT,BIT(31));"
+				},
+				"STAT" : {
+					"offset": "0x4",
+					"reset": "0x0",
+					"action": "ignore"
+				}
+
+			},
+			"size":"0x100"
+		},
+		"DFS":{
+			"soc": "s32g2",
+			"name": "dfs",
+			"offset" : "0x40054000",
+			"description": "Digital Frequency Synthesizer",
+			"helpers": "",
+			"registers": {
+				"PORTSR" : {
+					"offset": "0xC",
+					"reset": "0x0",
+					"action": "ignore"
+				},
+				"PORTLOLSR" : {
+					"offset": "0x10",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_PORTLOLSR, 0 );"
+				},
+				"PORTRESET" : {
+					"offset": "0x14",
+					"reset": "0x3f",
+					"action": "unsigned int tmp=~((PERFORM_READ(REG_PORTRESET))&0x3F);\nPERFORM_WRITE(REG_PORTSR, tmp);\nPERFORM_WRITE(REG_PORTLOLSR, 0);"
+				},
+				"CTL" : {
+					"offset": "0x18",
+					"reset": "0x2"
+				}
+
+			},
+			"size":"0x100"
 		},
 		"MC_RGM":{
 			"soc": "s32g2",
@@ -112,6 +356,89 @@
 
 			},
 			"size":"0x100"
+		},
+		"MC_ME":{
+			"soc": "s32g2",
+			"name": "mc_me",
+			"offset" : "0x40088000",
+			"description": "Mode Entry Module",
+			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);\nx=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);\nPERFORM_WRITE(REG_PRTN0_STAT, x);\nPERFORM_WRITE(REG_PRTN0_PUPD, 0);\nPERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
+			"registers": {
+				"CTRL_KEY" : {
+					"offset": "0x0",
+					"reset": "0x5af0",
+					"action": "if(conf_control==0) conf_control++;\nif(conf_control==1) {\ntimer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}"
+				},
+				"MODE_STAT" : {
+					"offset": "0xC",
+					"reset": "0",
+					"action":"ignore"
+				},
+				"PRTN0_PCONF" : {
+					"offset": "0x100",
+					"reset": "0x1"
+				},
+				"PRTN0_PUPD" : {
+					"offset": "0x104",
+					"reset": "0"
+				},
+				"PRTN0_STAT" : {
+					"offset": "0x108",
+					"reset": "0x1",
+					"action":"ignore"
+				},
+				"PRTN0_COFB0_STAT": {
+					"offset": "0x110",
+					"reset": "0"
+				},
+				"PRTN3_PCONF" : {
+					"offset": "0x700",
+					"reset": "0"
+				},
+				"PRTN3_PUPD" : {
+					"offset": "0x704",
+					"reset": "0"
+				},
+				"PRTN3_STAT" : {
+					"offset": "0x708",
+					"reset": "0",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x800"
+		},
+		"WKPU":{
+			"soc": "s32g2",
+			"name": "wkpu",
+			"offset" : "0x40090000",
+			"description": "Wakeup Unit",
+			"helpers": "",
+			"registers": {
+				"NSR" : {
+					"offset": "0x0",
+					"reset": "0x0",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x100"
+		},
+		"SIUL2":{
+			"soc": "s32g2",
+			"name": "siul2",
+			"offset" : "0x4009C000",
+			"description": "System Integration Unit Lite2",
+			"helpers": "",
+			"registers": {
+				"MIDR2" : {
+					"offset": "0x8",
+					"reset": "0x48BB0000",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x2000"
 		},
 		"LINFlex":{
 			"soc": "s32g2",

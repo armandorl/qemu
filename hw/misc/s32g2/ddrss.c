@@ -57,7 +57,7 @@ static uint64_t s32g2_ddrss_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);  */
+    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
     return retVal;
 }
 
@@ -98,7 +98,7 @@ if((val&BIT(0))==BIT(0)) PERFORM_WRITE(REG_STAT, 1);
 			return;
 
     default:
-        printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
         s->regs[idx] = (uint32_t) val;
         return;
     }

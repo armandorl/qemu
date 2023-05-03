@@ -27,7 +27,7 @@
 #include "qom/object.h"
 #include "hw/arm/boot.h"
 //#include "hw/timer/allwinner-a10-pit.h"
-#include "hw/intc/arm_gic.h"
+#include "hw/intc/arm_gicv3.h"
 //#include "hw/misc/s32g2-ccu.h"
 //#include "hw/misc/allwinner-cpucfg.h"
 //#include "hw/misc/s32g2-dramc.h"
@@ -42,11 +42,18 @@
 #include "hw/misc/s32g2/sramc.h"
 #include "hw/misc/s32g2/mc_me.h"
 #include "hw/misc/s32g2/mc_cgm.h"
+#include "hw/misc/s32g2/mc_cgm1.h"
+#include "hw/misc/s32g2/mc_cgm5.h"
 #include "hw/misc/s32g2/mc_rgm.h"
 #include "hw/misc/s32g2/rdc.h"
 #include "hw/misc/s32g2/linFlex.h"
 #include "hw/misc/s32g2/ddrss.h"
 #include "hw/misc/s32g2/ddrphy.h"
+#include "hw/misc/s32g2/wkpu.h"
+#include "hw/misc/s32g2/xosc.h"
+#include "hw/misc/s32g2/pll.h"
+#include "hw/misc/s32g2/dfs.h"
+#include "hw/misc/s32g2/siul2.h"
 
 
 /**
@@ -93,6 +100,10 @@ enum {
     S32G2_DEV_SDRAM
 #endif
     S32G2_DEV_GIC_DIST,
+    S32G2_DEV_GIC_RDIST0,
+    S32G2_DEV_GIC_RDIST1,
+    S32G2_DEV_GIC_RDIST2,
+    S32G2_DEV_GIC_RDIST3,
     S32G2_DEV_GIC_CPU,
     S32G2_DEV_GIC_HYP,
     S32G2_DEV_GIC_VCPU,
@@ -109,18 +120,30 @@ enum {
     S32G2_DEV_SPI1,
     S32G2_DEV_SPI2,
     S32G2_DEV_QSPI,
+    S32G2_DEV_QSPI_BUFFER,
     S32G2_DEV_I2C0,
     S32G2_DEV_I2C1,
     S32G2_DEV_I2C2,
     S32G2_DEV_MC_ME,
     S32G2_DEV_MC_CGM,
+    S32G2_DEV_MC_CGM1,
+    S32G2_DEV_MC_CGM5,
     S32G2_DEV_MC_RGM,
+    S32G2_DEV_WKPU,
+    S32G2_DEV_XOSC,
+    S32G2_DEV_DFS,
+    S32G2_DEV_DDR_DFS,
+    S32G2_DEV_PERIPH_DFS,
+    S32G2_DEV_PLL,
+    S32G2_DEV_DDR_PLL,
+    S32G2_DEV_PERIPH_PLL,
     S32G2_DEV_RDC,
     S32G2_DEV_LINFLEX0,
     S32G2_DEV_LINFLEX1,
     S32G2_DEV_LINFLEX2,
     S32G2_DEV_DDRSS,
-    S32G2_DEV_DDRPHY
+    S32G2_DEV_DDRPHY,
+    S32G2_DEV_SIUL2
 };
 
 /** Total number of CPU cores in the H3 SoC */
@@ -165,7 +188,7 @@ struct S32G2State {
 //    AWI2CState r_twi;
 //    AwSun8iEmacState emac;
 //    AwRtcState rtc;
-    GICState gic;
+    GICv3State gic;
     MemoryRegion sram_a1;
     MemoryRegion sram_a2;
     MemoryRegion sram_c;
@@ -173,6 +196,7 @@ struct S32G2State {
     MemoryRegion sram_c1;
     MemoryRegion sram_stdby;
     MemoryRegion ddr;
+    MemoryRegion qspi_buffer;
 
     S32G2SramcState sram_ctrl_c0;
     S32G2SramcState sram_ctrl_c1;
@@ -180,7 +204,17 @@ struct S32G2State {
 
     S32G2mc_meState mc_me;
     S32G2mc_cgmState mc_cgm;
+    S32G2mc_cgm1State mc_cgm1;
+    S32G2mc_cgm5State mc_cgm5;
     S32G2mc_rgmState mc_rgm;
+    S32G2wkpuState wkpu;
+    S32G2xoscState xosc;
+    S32G2dfsState dfs;
+    S32G2dfsState periph_dfs;
+    S32G2siul2State siul2;
+    S32G2pllState pll;
+    S32G2pllState ddr_pll;
+    S32G2pllState periph_pll;
     S32G2rdcState rdc;
     S32G2linFlexState linflex0;
     S32G2linFlexState linflex1;

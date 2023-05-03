@@ -28,11 +28,15 @@
 #include "hw/misc/s32g2/mc_me.h"
 
 enum {
+	REG_MODE_STAT=	0xC,
+	REG_PRTN0_PUPD=	0x104,
 	REG_PRTN3_STAT=	0x708,
 	REG_CTRL_KEY=	0x0,
 	REG_PRTN3_PUPD=	0x704,
-	REG_MODE_STAT=	0xC,
 	REG_PRTN3_PCONF=	0x700,
+	REG_PRTN0_PCONF=	0x100,
+	REG_PRTN0_STAT=	0x108,
+	REG_PRTN0_COFB0_STAT=	0x110,
 };
 
 
@@ -48,7 +52,11 @@ unsigned int x=0;
 conf_control=0;
 x=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);
 PERFORM_WRITE(REG_PRTN3_STAT, x);
-PERFORM_WRITE(REG_PRTN3_PUPD, 0);timer_del(&timer1);
+PERFORM_WRITE(REG_PRTN3_PUPD, 0);
+x=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);
+PERFORM_WRITE(REG_PRTN0_STAT, x);
+PERFORM_WRITE(REG_PRTN0_PUPD, 0);
+PERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);
 timer_deinit(&timer1);
 }
 
@@ -66,7 +74,7 @@ static uint64_t s32g2_mc_me_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal);  */
+    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
     return retVal;
 }
 
@@ -84,6 +92,8 @@ static void s32g2_mc_me_write(void *opaque, hwaddr offset,
 
     switch (offset) {
     
+		case REG_MODE_STAT:
+			return;
 		case REG_PRTN3_STAT:
 			return;
 		case REG_CTRL_KEY:
@@ -93,11 +103,11 @@ if(conf_control==1) {
 timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
 timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}
 ;			break;
-		case REG_MODE_STAT:
+		case REG_PRTN0_STAT:
 			return;
 
     default:
-        printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
         s->regs[idx] = (uint32_t) val;
         return;
     }
@@ -120,11 +130,15 @@ static void s32g2_mc_me_reset(DeviceState *dev)
     S32G2mc_meState *s = S32G2_MC_ME(dev); 
 
     /* Set default values for registers */
-    	PERFORM_WRITE(REG_PRTN3_STAT,0);
+    	PERFORM_WRITE(REG_MODE_STAT,0);
+	PERFORM_WRITE(REG_PRTN0_PUPD,0);
+	PERFORM_WRITE(REG_PRTN3_STAT,0);
 	PERFORM_WRITE(REG_CTRL_KEY,0x5af0);
 	PERFORM_WRITE(REG_PRTN3_PUPD,0);
-	PERFORM_WRITE(REG_MODE_STAT,0);
 	PERFORM_WRITE(REG_PRTN3_PCONF,0);
+	PERFORM_WRITE(REG_PRTN0_PCONF,0x1);
+	PERFORM_WRITE(REG_PRTN0_STAT,0x1);
+	PERFORM_WRITE(REG_PRTN0_COFB0_STAT,0);
 
 }
 
