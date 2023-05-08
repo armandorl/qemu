@@ -27,10 +27,13 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/linFlex.h"
 
+static int debug=0;
+
 enum {
 	REG_LINCR1=	0x0,
-	REG_UARTCR1=	0x10,
 	REG_BDRL=	0x38,
+	REG_UARTCR1=	0x10,
+	REG_UARTSR=	0x14,
 	REG_LINSR=	0x8,
 };
 
@@ -39,11 +42,57 @@ enum {
 #define PERFORM_READ(reg)         s->regs[REG_INDEX(reg)] 
 #define PERFORM_WRITE(reg, val)   s->regs[REG_INDEX(reg)] = val
 
-static unsigned int in_init=0;
+#define LINFLEX_LINCR1_INIT   BIT(0)
+#define LINFLEX_LINCR1_SLEEP   BIT(1)
+#define LINFLEX_LINCR1_MASTER   BIT(4)
+
+
+#define LINFLEX_UARTCR1_UART   BIT(0)
+#define LINFLEX_UARTCR1_TXEN   BIT(4)
+#define LINFLEX_UARTCR1_RXEN   BIT(5)
+#define LINFLEX_UARTCR1_TXFIFO   BIT(8)
+#define LINFLEX_UARTCR1_RXFIFO   BIT(9)
+#define LINFLEX_UARTSR_DTFTFF   BIT(1)
+#define LINFLEX_UARTSR_DRFRFE   BIT(2)
+enum {LINMODE_SLEEP=0, LINMODE_INIT, LINMODE_NORMAL}; static unsigned int linmode=LINMODE_SLEEP;
 static unsigned int is_master=0;
 static unsigned int uart_mode=0;
 static unsigned int tx_fifo_mode=0;
+static unsigned int rx_fifo_mode=0;
 unsigned int tx_enable=0;
+unsigned int rx_enable=0;
+void linflex_process_lincr1(S32G2linFlexState *s, unsigned int val);
+void linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val);
+
+void linflex_process_lincr1(S32G2linFlexState *s, unsigned int val){
+debug=0;switch(val&(LINFLEX_LINCR1_INIT|LINFLEX_LINCR1_SLEEP)){
+case LINFLEX_LINCR1_INIT:
+ linmode=LINMODE_INIT;break;
+case LINFLEX_LINCR1_SLEEP:
+ linmode=LINMODE_SLEEP;break;
+case LINFLEX_LINCR1_INIT|LINFLEX_LINCR1_SLEEP:
+ linmode=LINMODE_SLEEP;break;
+default:
+break;
+ }
+ if(linmode==LINFLEX_LINCR1_INIT){ is_master=!!(val&LINFLEX_LINCR1_MASTER);
+PERFORM_WRITE(REG_LINSR, LINMODE_INIT<<12); }
+else if(linmode==LINMODE_NORMAL){PERFORM_WRITE(REG_LINSR, LINMODE_NORMAL<<12);}
+else { PERFORM_WRITE(REG_LINSR, LINMODE_SLEEP<<12);}  }
+void linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val){ if(linmode==LINMODE_INIT)
+{ uart_mode=!!(val&LINFLEX_UARTCR1_UART);
+tx_fifo_mode=!!(val&LINFLEX_UARTCR1_TXFIFO);
+rx_fifo_mode=!!(val&LINFLEX_UARTCR1_RXFIFO);
+tx_enable=!!(val&LINFLEX_UARTCR1_TXEN);
+rx_enable=!!(val&LINFLEX_UARTCR1_RXEN);
+
+if(tx_fifo_mode){PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE) & ~(LINFLEX_UARTSR_DTFTFF)  );
+}
+else {
+ PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF  );
+}
+}
+}
 
 static uint64_t s32g2_linFlex_read(void *opaque, hwaddr offset,
                                           unsigned size)
@@ -58,7 +107,7 @@ static uint64_t s32g2_linFlex_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
+    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 
@@ -78,18 +127,16 @@ static void s32g2_linFlex_write(void *opaque, hwaddr offset,
     
 		case REG_LINCR1:
 PERFORM_WRITE(REG_LINCR1, val);
-			if((val&0x1)==0x1) { in_init=1; PERFORM_WRITE(REG_LINSR, 1<<12);} else { in_init=0;};
-if((val&0x10)==0x10) { is_master=1;} else { is_master=0;}
-;			break;
-		case REG_UARTCR1:
-PERFORM_WRITE(REG_UARTCR1, val);
-			if(in_init==0x1){ if((val&0x1)==0x1) { uart_mode=1;} else { uart_mode=0;}
-if((val&(BIT(8)))==1){tx_fifo_mode=1;} else { tx_fifo_mode=0; }
- if((val&(BIT(4)))==1){tx_enable=0;} else { tx_enable=0; }}
+			linflex_process_lincr1(s, val);
 ;			break;
 		case REG_BDRL:
 PERFORM_WRITE(REG_BDRL, val);
-			printf("%c", (int)val);return; /* TODO: How to use qemu serial output? */
+			if(tx_fifo_mode) {PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~(LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF)));} else {PERFORM_WRITE(REG_UARTSR, ((PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DTFTFF) & ~LINFLEX_UARTSR_DRFRFE)); }
+printf("%c", (int)val); return; /* TODO: How to use qemu serial output? */
+;			break;
+		case REG_UARTCR1:
+PERFORM_WRITE(REG_UARTCR1, val);
+			linflex_process_uartcr1(s, val);
 ;			break;
 		case REG_LINSR:
 			return;
@@ -119,8 +166,9 @@ static void s32g2_linFlex_reset(DeviceState *dev)
 
     /* Set default values for registers */
     	PERFORM_WRITE(REG_LINCR1,0x82);
-	PERFORM_WRITE(REG_UARTCR1,0x0);
 	PERFORM_WRITE(REG_BDRL,0x0);
+	PERFORM_WRITE(REG_UARTCR1,0x0);
+	PERFORM_WRITE(REG_UARTSR,0x4);
 	PERFORM_WRITE(REG_LINSR,0x40);
 
 }

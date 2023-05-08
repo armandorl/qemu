@@ -27,6 +27,8 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/dfs.h"
 
+static int debug=0;
+
 enum {
 	REG_CTL=	0x18,
 	REG_PORTLOLSR=	0x10,
@@ -54,7 +56,7 @@ static uint64_t s32g2_dfs_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
+    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 

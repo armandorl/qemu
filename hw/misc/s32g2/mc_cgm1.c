@@ -27,6 +27,8 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/mc_cgm1.h"
 
+static int debug=0;
+
 enum {
 	REG_PCFS_DIVE4=	0x2C,
 	REG_PCFS_DIVS4=	0x30,
@@ -54,7 +56,7 @@ static uint64_t s32g2_mc_cgm1_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
+    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 

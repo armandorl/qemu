@@ -52,8 +52,10 @@
 #include "hw/misc/s32g2/wkpu.h"
 #include "hw/misc/s32g2/xosc.h"
 #include "hw/misc/s32g2/pll.h"
+#include "hw/misc/s32g2/qspi.h"
 #include "hw/misc/s32g2/dfs.h"
 #include "hw/misc/s32g2/siul2.h"
+#include "hw/misc/s32g2/siul2_1.h"
 
 
 /**
@@ -110,6 +112,7 @@ enum {
     S32G2_DEV_SRAM,
     S32G2_DEV_SSRAM,
     S32G2_DEV_DRAM,
+    S32G2_DEV_DRAM2,
     S32G2_DEV_SRAM_CTRL_C0,
     S32G2_DEV_SRAM_CTRL_C1,
     S32G2_DEV_SRAM_CTRL_STDBY,
@@ -135,6 +138,7 @@ enum {
     S32G2_DEV_DDR_DFS,
     S32G2_DEV_PERIPH_DFS,
     S32G2_DEV_PLL,
+    S32G2_DEV_QSPI_REGS,
     S32G2_DEV_DDR_PLL,
     S32G2_DEV_PERIPH_PLL,
     S32G2_DEV_RDC,
@@ -143,7 +147,8 @@ enum {
     S32G2_DEV_LINFLEX2,
     S32G2_DEV_DDRSS,
     S32G2_DEV_DDRPHY,
-    S32G2_DEV_SIUL2
+    S32G2_DEV_SIUL2,
+    S32G2_DEV_SIUL2_1
 };
 
 /** Total number of CPU cores in the H3 SoC */
@@ -196,6 +201,7 @@ struct S32G2State {
     MemoryRegion sram_c1;
     MemoryRegion sram_stdby;
     MemoryRegion ddr;
+    MemoryRegion ddr2;
     MemoryRegion qspi_buffer;
 
     S32G2SramcState sram_ctrl_c0;
@@ -212,7 +218,9 @@ struct S32G2State {
     S32G2dfsState dfs;
     S32G2dfsState periph_dfs;
     S32G2siul2State siul2;
+    S32G2siul2_1State siul2_1;
     S32G2pllState pll;
+    S32G2qspiState qspi;
     S32G2pllState ddr_pll;
     S32G2pllState periph_pll;
     S32G2rdcState rdc;

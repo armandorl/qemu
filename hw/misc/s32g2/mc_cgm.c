@@ -27,6 +27,8 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/mc_cgm.h"
 
+static int debug=0;
+
 enum {
 	REG_MUX_11_CSS=	0x5C4,
 	REG_MUX_9_CSS=	0x544,
@@ -82,7 +84,7 @@ static uint64_t s32g2_mc_cgm_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
+    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 

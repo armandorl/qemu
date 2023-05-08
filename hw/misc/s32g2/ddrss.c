@@ -27,6 +27,8 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/ddrss.h"
 
+static int debug=0;
+
 enum {
 	REG_STAT=	0x4,
 	REG_SWCTL=	0x320,
@@ -57,7 +59,7 @@ static uint64_t s32g2_ddrss_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, retVal); */
+    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
     return retVal;
 }
 

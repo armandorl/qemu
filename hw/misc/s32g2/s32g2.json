@@ -431,9 +431,30 @@
 			"description": "System Integration Unit Lite2",
 			"helpers": "",
 			"registers": {
+				"MIDR1" : {
+					"offset": "0x4",
+					"reset": "0x1D120011",
+					"action":"ignore"
+				},
 				"MIDR2" : {
 					"offset": "0x8",
 					"reset": "0x48BB0000",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x2000"
+		},
+		"QSPI":{
+			"soc": "s32g2",
+			"name": "qspi",
+			"offset" : "0x40134000",
+			"description": "QSPI Module",
+			"helpers": "",
+			"registers": {
+				"DLLSR" : {
+					"offset": "0x12C",
+					"reset": "0x80008000",
 					"action":"ignore"
 				}
 
@@ -445,12 +466,12 @@
 			"name": "linFlex",
 			"offset" : ["0x401C8000", "0x401CC000", "0x402BC000"],
 			"description": "LinFlexD",
-			"helpers": "static unsigned int in_init=0;\nstatic unsigned int is_master=0;\nstatic unsigned int uart_mode=0;\nstatic unsigned int tx_fifo_mode=0;\nunsigned int tx_enable=0;",
+			"helpers": "#define LINFLEX_LINCR1_INIT   BIT(0)\n#define LINFLEX_LINCR1_SLEEP   BIT(1)\n#define LINFLEX_LINCR1_MASTER   BIT(4)\n\n\n#define LINFLEX_UARTCR1_UART   BIT(0)\n#define LINFLEX_UARTCR1_TXEN   BIT(4)\n#define LINFLEX_UARTCR1_RXEN   BIT(5)\n#define LINFLEX_UARTCR1_TXFIFO   BIT(8)\n#define LINFLEX_UARTCR1_RXFIFO   BIT(9)\n#define LINFLEX_UARTSR_DTFTFF   BIT(1)\n#define LINFLEX_UARTSR_DRFRFE   BIT(2)\nenum {LINMODE_SLEEP=0, LINMODE_INIT, LINMODE_NORMAL}; static unsigned int linmode=LINMODE_SLEEP;\nstatic unsigned int is_master=0;\nstatic unsigned int uart_mode=0;\nstatic unsigned int tx_fifo_mode=0;\nstatic unsigned int rx_fifo_mode=0;\nunsigned int tx_enable=0;\nunsigned int rx_enable=0;\nvoid linflex_process_lincr1(S32G2linFlexState *s, unsigned int val);\nvoid linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val);\n\nvoid linflex_process_lincr1(S32G2linFlexState *s, unsigned int val){\ndebug=0;switch(val&(LINFLEX_LINCR1_INIT|LINFLEX_LINCR1_SLEEP)){\ncase LINFLEX_LINCR1_INIT:\n linmode=LINMODE_INIT;break;\ncase LINFLEX_LINCR1_SLEEP:\n linmode=LINMODE_SLEEP;break;\ncase LINFLEX_LINCR1_INIT|LINFLEX_LINCR1_SLEEP:\n linmode=LINMODE_SLEEP;break;\ndefault:\nbreak;\n }\n if(linmode==LINFLEX_LINCR1_INIT){ is_master=!!(val&LINFLEX_LINCR1_MASTER);\nPERFORM_WRITE(REG_LINSR, LINMODE_INIT<<12); }\nelse if(linmode==LINMODE_NORMAL){PERFORM_WRITE(REG_LINSR, LINMODE_NORMAL<<12);}\nelse { PERFORM_WRITE(REG_LINSR, LINMODE_SLEEP<<12);}  }\nvoid linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val){ if(linmode==LINMODE_INIT)\n{ uart_mode=!!(val&LINFLEX_UARTCR1_UART);\ntx_fifo_mode=!!(val&LINFLEX_UARTCR1_TXFIFO);\nrx_fifo_mode=!!(val&LINFLEX_UARTCR1_RXFIFO);\ntx_enable=!!(val&LINFLEX_UARTCR1_TXEN);\nrx_enable=!!(val&LINFLEX_UARTCR1_RXEN);\n\nif(tx_fifo_mode){PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE) & ~(LINFLEX_UARTSR_DTFTFF)  );\n}\nelse {\n PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF  );\n}\n}\n}",
 			"registers": {
 				"LINCR1" : {
 					"offset": "0x0",
 					"reset": "0x82",
-					"action":"if((val&0x1)==0x1) { in_init=1; PERFORM_WRITE(REG_LINSR, 1<<12);} else { in_init=0;};\nif((val&0x10)==0x10) { is_master=1;} else { is_master=0;}"
+					"action":"linflex_process_lincr1(s, val);"
 				},
 				"LINSR" : {
 					"offset": "0x8",
@@ -460,12 +481,16 @@
 				"UARTCR1" : {
 					"offset": "0x10",
 					"reset": "0x0",
-					"action":"if(in_init==0x1){ if((val&0x1)==0x1) { uart_mode=1;} else { uart_mode=0;}\nif((val&(BIT(8)))==1){tx_fifo_mode=1;} else { tx_fifo_mode=0; }\n if((val&(BIT(4)))==1){tx_enable=0;} else { tx_enable=0; }}"
+					"action":"linflex_process_uartcr1(s, val);"
+				},
+				"UARTSR" : {
+					"offset": "0x14",
+					"reset": "0x4"
 				},
 				"BDRL" : {
 					"offset": "0x38",
 					"reset": "0x0",
-					"action":"printf(\"%c\", (int)val);return; /* TODO: How to use qemu serial output? */"
+					"action":"if(tx_fifo_mode) {PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~(LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF)));} else {PERFORM_WRITE(REG_UARTSR, ((PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DTFTFF) & ~LINFLEX_UARTSR_DRFRFE)); }\nprintf(\"%c\", (int)val); return; /* TODO: How to use qemu serial output? */"
 				}
 
 			},
@@ -549,6 +574,27 @@
 			},
 			"size":"0x10000",
 			"min_access":1
+		},
+		"SIUL2_1":{
+			"soc": "s32g2",
+			"name": "siul2_1",
+			"offset" : "0x44010000",
+			"description": "System Integration Unit Lite2 1",
+			"helpers": "",
+			"registers": {
+				"MIDR1" : {
+					"offset": "0x4",
+					"reset": "0x4c200412",
+					"action":"ignore"
+				},
+				"MIDR2" : {
+					"offset": "0x8",
+					"reset": "0x0112c000",
+					"action":"ignore"
+				}
+
+			},
+			"size":"0x2000"
 		}
 	}
 }
