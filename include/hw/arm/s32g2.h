@@ -26,7 +26,6 @@
 
 #include "qom/object.h"
 #include "hw/arm/boot.h"
-//#include "hw/timer/allwinner-a10-pit.h"
 #include "hw/intc/arm_gicv3.h"
 //#include "hw/misc/s32g2-ccu.h"
 //#include "hw/misc/allwinner-cpucfg.h"
@@ -46,11 +45,12 @@
 #include "hw/misc/s32g2/mc_cgm5.h"
 #include "hw/misc/s32g2/mc_rgm.h"
 #include "hw/misc/s32g2/rdc.h"
-#include "hw/misc/s32g2/linFlex.h"
+#include "hw/misc/s32g2/linFlex-module.h"
 #include "hw/misc/s32g2/ddrss.h"
 #include "hw/misc/s32g2/ddrphy.h"
 #include "hw/misc/s32g2/wkpu.h"
 #include "hw/misc/s32g2/xosc.h"
+#include "hw/misc/s32g2/pit-module.h"
 #include "hw/misc/s32g2/pll.h"
 #include "hw/misc/s32g2/qspi.h"
 #include "hw/misc/s32g2/dfs.h"
@@ -80,7 +80,6 @@ enum {
     S32G2_DEV_EHCI3,
     S32G2_DEV_OHCI3,
     S32G2_DEV_CCU,
-    S32G2_DEV_PIT,
     S32G2_DEV_UART0,
     S32G2_DEV_UART1,
     S32G2_DEV_UART2,
@@ -109,6 +108,7 @@ enum {
     S32G2_DEV_GIC_CPU,
     S32G2_DEV_GIC_HYP,
     S32G2_DEV_GIC_VCPU,
+    S32G2_DEV_PIT,
     S32G2_DEV_SRAM,
     S32G2_DEV_SSRAM,
     S32G2_DEV_DRAM,
@@ -151,27 +151,27 @@ enum {
     S32G2_DEV_SIUL2_1
 };
 
-/** Total number of CPU cores in the H3 SoC */
+/** Total number of CPU cores in the SoC */
 #define S32G2_NUM_CPUS      (4)
 
 /**
- * Allwinner H3 object model
+ * S32G2 object model
  * @{
  */
 
 /** Object type for the Allwinner H3 SoC */
 #define TYPE_S32G2 "s32g2"
 
-/** Convert input object to Allwinner H3 state object */
+/** Convert input object to S32G2 state object */
 OBJECT_DECLARE_SIMPLE_TYPE(S32G2State, S32G2)
 
 /** @} */
 
 /**
- * Allwinner H3 object
+ * S32G2 object
  *
  * This struct contains the state of all the devices
- * which are currently emulated by the H3 SoC code.
+ * which are currently emulated by the SoC code.
  */
 struct S32G2State {
     /*< private >*/
@@ -180,7 +180,6 @@ struct S32G2State {
 
     ARMCPU cpus[S32G2_NUM_CPUS];
     const hwaddr *memmap;
-//    AwA10PITState timer;
 //    S32G2ClockCtlState ccu;
 //    AwCpuCfgState cpucfg;
 //    S32G2DramCtlState dramc;
@@ -219,6 +218,7 @@ struct S32G2State {
     S32G2dfsState periph_dfs;
     S32G2siul2State siul2;
     S32G2siul2_1State siul2_1;
+    S32G2pitState timer;
     S32G2pllState pll;
     S32G2qspiState qspi;
     S32G2pllState ddr_pll;

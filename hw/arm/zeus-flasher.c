@@ -56,6 +56,7 @@ static void zeusflasher_init(MachineState *machine)
 
 #if 0
     /* Setup timer properties */
+    /* Freq comes from XBAR_DIV3_CLK */
     object_property_set_int(OBJECT(s32g2_st), "clk0-freq", 32768, &error_abort);
     object_property_set_int(OBJECT(s32g2_st), "clk1-freq", 24 * 1000 * 1000,
                             &error_abort);
