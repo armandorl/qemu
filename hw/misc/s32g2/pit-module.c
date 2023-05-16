@@ -132,11 +132,13 @@ static void update_timers(S32G2pitState *s)
 				{
 					limit = (s->timer_loadval[i-1]&0xFFFFFFFF);
 				}
-				printf("Set timer %d limit %lx\n", i, limit);
+				limit--;
+				if(debug)printf("Set timer %d limit %lx\n", i, limit);
 				ptimer_transaction_begin(s->timer[i]);
-				/* ptimer_set_count(s->timer[i], limit); */
-				ptimer_set_limit(s->timer[i], limit, 0);
-				ptimer_set_freq(s->timer[i], s->clk_freq[0]);
+				ptimer_set_limit(s->timer[i], 5000000, 0);
+				ptimer_transaction_commit(s->timer[i]);
+
+				ptimer_transaction_begin(s->timer[i]);
 				ptimer_run(s->timer[i], 0);
 				ptimer_transaction_commit(s->timer[i]);
 			}
@@ -397,7 +399,7 @@ static void s32g2_pit_reset(DeviceState *dev)
 }
 
 static Property s32g2_pit_properties[] = {
-    DEFINE_PROP_UINT32("clk0-freq", S32G2pitState, clk_freq[0], 0),
+    DEFINE_PROP_UINT32("clk0-freq", S32G2pitState, clk_freq[0], 10000),
     DEFINE_PROP_UINT32("clk1-freq", S32G2pitState, clk_freq[1], 0),
     DEFINE_PROP_UINT32("clk2-freq", S32G2pitState, clk_freq[2], 0),
     DEFINE_PROP_UINT32("clk3-freq", S32G2pitState, clk_freq[3], 0),
@@ -415,17 +417,17 @@ static void s32g2_pit_init(Object *obj)
 			TYPE_S32G2_PIT, 0x200);
 	sysbus_init_mmio(sbd, &s->iomem);
         sysbus_init_irq(sbd, &s->irq[0]);
-	s->clk_freq[0] = 10;
+	s->clk_freq[0] = 10000;
 	for (i = 0; i < PIT_MAX_TIMERS; i++) {
 		S32G2TimerContext *tc = &s->timer_context[i];
 
 		tc->state = s;
 		tc->index = i;
-		s->timer[i] = ptimer_init(s32g2_pit_timer_cb, tc, PTIMER_POLICY_NO_IMMEDIATE_RELOAD|PTIMER_POLICY_NO_IMMEDIATE_TRIGGER);
+		/* s->timer[i] = ptimer_init(s32g2_pit_timer_cb, tc, PTIMER_POLICY_NO_IMMEDIATE_RELOAD|PTIMER_POLICY_NO_IMMEDIATE_TRIGGER); */
+		s->timer[i] = ptimer_init(s32g2_pit_timer_cb, tc, PTIMER_POLICY_NO_COUNTER_ROUND_DOWN);
 		ptimer_transaction_begin(s->timer[i]);
-		/* ptimer_set_count(s->timer[i], 0xFFFFFFFF); */
-		ptimer_set_limit(s->timer[i], 0x10000000, 0);
-                ptimer_set_freq(s->timer[i], s->clk_freq[0]);
+                ptimer_set_period(s->timer[i], 20000);
+                ptimer_set_count(s->timer[i], 10);
 		ptimer_stop(s->timer[i]);
 		ptimer_transaction_commit(s->timer[i]);
 	}

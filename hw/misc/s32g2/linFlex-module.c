@@ -83,7 +83,7 @@ static void serial_receive1(void *opaque, const uint8_t *buf, int size)
     int i;
     for (i = 0; i < size; i++) {
 /*	    recv_fifo_put(s, buf[i]);*/
-	    printf("%c", buf[i]);
+/*	    printf("%c", buf[i]); */
             if(rx_enable)
 	    {
 		PERFORM_WRITE(REG_BDRM, buf[i]);
@@ -100,7 +100,7 @@ static void serial_receive1(void *opaque, const uint8_t *buf, int size)
 static void serial_event(void *opaque, QEMUChrEvent event)
 {
     if (event == CHR_EVENT_BREAK){
-        printf("DEBUG: event_brake\n");
+        if(debug)printf("DEBUG: event_brake\n");
 	exit(0);
     }
 
@@ -108,7 +108,7 @@ static void serial_event(void *opaque, QEMUChrEvent event)
 
 static int serial_be_change(void *opaque)
 {
-    printf("DEBUG: be_change\n");
+    if(debug)printf("DEBUG: be_change\n");
     return 0;
 }
 
@@ -220,8 +220,9 @@ static void s32g2_linFlex_write(void *opaque, hwaddr offset,
 		case REG_BDRL:
 			PERFORM_WRITE(REG_BDRL, val);
 			if(tx_fifo_mode) {PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~(LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF)));} else {PERFORM_WRITE(REG_UARTSR, ((PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DTFTFF) & ~LINFLEX_UARTSR_DRFRFE)); }
-			printf("%c", (int)val); return; /* TODO: How to use qemu serial output? */
-			;			break;
+			if(debug)printf("%c", (int)val);
+			qemu_chr_fe_write(&s->chr, (const uint8_t*)&val, 1);
+			return; /* TODO: How to use qemu serial output? */
 		case REG_UARTCR1:
 			PERFORM_WRITE(REG_UARTCR1, val);
 			linflex_process_uartcr1(s, val);
@@ -260,6 +261,7 @@ void s32g2_linflex_props_init (S32G2linFlexState *s,
     qdev_prop_set_chr(DEVICE(s), "chardev", chr);
     qemu_chr_fe_set_handlers(&s->chr, serial_can_receive1, serial_receive1,
                              serial_event, serial_be_change, s, NULL, true);
+    qemu_chr_fe_set_echo(&s->chr, true);
 }
 
 static void s32g2_linFlex_reset(DeviceState *dev)

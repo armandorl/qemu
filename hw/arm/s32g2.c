@@ -187,10 +187,25 @@ struct S32G2Unimplemented {
 #endif
     { "concerto",  0x50400000, 1 * MiB },
     { "PLLAcc",    0x40040000, 12 * KiB },
-    { "OCOTP",     0x400A4000, 4 * KiB },
+    { "RTC",       0x40060000, 4 * KiB },
+    { "OCOTP",     0x400A4000, 4 * KiB }, /* On chip One Time Programmable - eFuses*/
+    { "STM0",      0x40110000, 12 * KiB },
+    { "STM1",      0x40120000, 12 * KiB },
+    { "STM2",      0x40124000, 12 * KiB },
+    { "STM3",      0x40128000, 12 * KiB },
+    { "DMAMUX0",   0x4012C000, 12 * KiB },
+    { "DMAMUX1",   0x40130000, 12 * KiB },
+    { "EDMA0",     0x40144000, 12 * KiB },
+    { "EDMA0CHAN", 0x40148000, 128 * KiB },
+    { "HSE",       0x40210000, 16 * KiB },
+    { "DMAMUX2",   0x4022C000, 12 * KiB },
+    { "DMAMUX3",   0x40230000, 12 * KiB },
+    { "EDMA1",     0x40244000, 12 * KiB },
+    { "EDMA1CHAN", 0x40248000, 128 * KiB },
     { "I2C4",      0x402DC000, 4 * KiB },
-    { "FCCU",      0x4030C000, 12 * KiB },
-    { "SRC",       0x4007C000, 12 * KiB },
+    { "FCCU",      0x4030C000, 12 * KiB }, /* Fault collection and control unit */
+    { "SRC",       0x4007C000, 12 * KiB }, /* Src control registers (i.e. OS timer tick source)*/
+    { "LLCE",      0x43000000, 16 * MiB },
     { "DDRSS1",    0x40390000, 0x20000 },
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 }
@@ -528,14 +543,11 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
 
         /* GIC maintenance signal */
-
-#if 0
         qemu_irq maint_irq;
         maint_irq = qdev_get_gpio_in(DEVICE(&s->gic),
                                         ppibase + S32G2_GIC_PPI_MAINT);
         qdev_connect_gpio_out_named(cpudev, "gicv3-maintenance-interrupt",
                                     0, maint_irq);
-#endif
     }
     /* Timer */
     sysbus_realize(SYS_BUS_DEVICE(&s->timer), &error_fatal);
