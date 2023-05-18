@@ -74,16 +74,16 @@ static void s32g2_mc_cgm5_write(void *opaque, hwaddr offset,
     
 		case REG_MUX_0_CSC:
 PERFORM_WRITE(REG_MUX_0_CSC, val);
-			PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */
-PERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x3F000000) | BIT(17));
+			PERFORM_WRITE(REG_MUX_0_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+PERFORM_WRITE(REG_MUX_0_CSS, (val & 0x3F00000F) | BIT(17));
 ;			break;
 
     default:
-        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_mc_cgm5_ops = {

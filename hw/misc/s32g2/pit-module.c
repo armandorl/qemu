@@ -29,7 +29,7 @@
 #include "hw/misc/s32g2/pit-module.h"
 #include "hw/qdev-properties.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_TCTRL5=	0x158,
@@ -236,12 +236,10 @@ reg_cval_label:
 			break;
 		case REG_LTMR64H:
 			s->ltmr = ptimer_get_count(s->timer[1]);
-			printf("LTMH:%lx\n", s->ltmr);
 			s->regs[idx] = (s->ltmr>>32)&0xFFFFFFFF;
 			break;
 		case REG_LTMR64L:
 			s->regs[idx] = (s->ltmr)&0xFFFFFFFF;
-			printf("LTML:%lx\n", s->ltmr);
 			break;
 
 		default:

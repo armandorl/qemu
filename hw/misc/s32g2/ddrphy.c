@@ -86,11 +86,11 @@ PERFORM_WRITE(REG_NAME1, val);
 ;			break;
 
     default:
-        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_ddrphy_ops = {

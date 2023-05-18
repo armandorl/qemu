@@ -42,9 +42,12 @@
 #include "hw/misc/s32g2/mc_me.h"
 #include "hw/misc/s32g2/mc_cgm.h"
 #include "hw/misc/s32g2/mc_cgm1.h"
+#include "hw/misc/s32g2/mc_cgm2.h"
 #include "hw/misc/s32g2/mc_cgm5.h"
 #include "hw/misc/s32g2/mc_rgm.h"
 #include "hw/misc/s32g2/rdc.h"
+#include "hw/misc/s32g2/hsemu.h"
+#include "hw/misc/s32g2/rtc.h"
 #include "hw/misc/s32g2/linFlex-module.h"
 #include "hw/misc/s32g2/ddrss.h"
 #include "hw/misc/s32g2/ddrphy.h"
@@ -56,6 +59,7 @@
 #include "hw/misc/s32g2/dfs.h"
 #include "hw/misc/s32g2/siul2.h"
 #include "hw/misc/s32g2/siul2_1.h"
+#include "hw/misc/s32g2/serdes.h"
 
 
 /**
@@ -130,6 +134,7 @@ enum {
     S32G2_DEV_MC_ME,
     S32G2_DEV_MC_CGM,
     S32G2_DEV_MC_CGM1,
+    S32G2_DEV_MC_CGM2,
     S32G2_DEV_MC_CGM5,
     S32G2_DEV_MC_RGM,
     S32G2_DEV_WKPU,
@@ -142,13 +147,20 @@ enum {
     S32G2_DEV_DDR_PLL,
     S32G2_DEV_PERIPH_PLL,
     S32G2_DEV_RDC,
+    S32G2_DEV_RTC,
+    S32G2_DEV_HSEMU0,
+    S32G2_DEV_HSEMU1,
+    S32G2_DEV_HSEMU2,
+    S32G2_DEV_HSEMU3,
     S32G2_DEV_LINFLEX0,
     S32G2_DEV_LINFLEX1,
     S32G2_DEV_LINFLEX2,
     S32G2_DEV_DDRSS,
     S32G2_DEV_DDRPHY,
     S32G2_DEV_SIUL2,
-    S32G2_DEV_SIUL2_1
+    S32G2_DEV_SIUL2_1,
+    S32G2_DEV_SERDES0,
+    S32G2_DEV_SERDES1
 };
 
 /** Total number of CPU cores in the SoC */
@@ -210,6 +222,7 @@ struct S32G2State {
     S32G2mc_meState mc_me;
     S32G2mc_cgmState mc_cgm;
     S32G2mc_cgm1State mc_cgm1;
+    S32G2mc_cgm2State mc_cgm2;
     S32G2mc_cgm5State mc_cgm5;
     S32G2mc_rgmState mc_rgm;
     S32G2wkpuState wkpu;
@@ -224,11 +237,18 @@ struct S32G2State {
     S32G2pllState ddr_pll;
     S32G2pllState periph_pll;
     S32G2rdcState rdc;
+    S32G2rtcState rtc;
     S32G2linFlexState linflex0;
     S32G2linFlexState linflex1;
     S32G2linFlexState linflex2;
     S32G2ddrssState ddrss;
     S32G2ddrphyState ddrphy;
+    S32G2hsemuState hsemu0;
+    S32G2hsemuState hsemu1;
+    S32G2hsemuState hsemu2;
+    S32G2hsemuState hsemu3;
+    S32G2serdesState serdes0;
+    S32G2serdesState serdes1;
 
 };
 

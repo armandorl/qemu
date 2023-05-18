@@ -75,11 +75,11 @@ static void s32g2_wkpu_write(void *opaque, hwaddr offset,
 			return;
 
     default:
-        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_wkpu_ops = {

@@ -27,18 +27,22 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/mc_me.h"
 
-static int debug=0;
+static int debug=1;
 
 enum {
+	REG_PRTN2_PUPD=	0x504,
 	REG_MODE_STAT=	0xC,
 	REG_PRTN0_PUPD=	0x104,
-	REG_PRTN3_STAT=	0x708,
+	REG_PRTN2_STAT=	0x508,
+	REG_PRTN2_COFB0_STAT=	0x510,
 	REG_CTRL_KEY=	0x0,
 	REG_PRTN3_PUPD=	0x704,
 	REG_PRTN3_PCONF=	0x700,
 	REG_PRTN0_PCONF=	0x100,
 	REG_PRTN0_STAT=	0x108,
 	REG_PRTN0_COFB0_STAT=	0x110,
+	REG_PRTN2_PCONF=	0x500,
+	REG_PRTN3_STAT=	0x708,
 };
 
 
@@ -58,7 +62,11 @@ PERFORM_WRITE(REG_PRTN3_PUPD, 0);
 x=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);
 PERFORM_WRITE(REG_PRTN0_STAT, x);
 PERFORM_WRITE(REG_PRTN0_PUPD, 0);
-PERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);
+PERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);
+x=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);
+PERFORM_WRITE(REG_PRTN2_STAT, x);
+PERFORM_WRITE(REG_PRTN2_PUPD, 0);
+PERFORM_WRITE(REG_PRTN2_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);
 timer_deinit(&timer1);
 }
 
@@ -96,24 +104,26 @@ static void s32g2_mc_me_write(void *opaque, hwaddr offset,
     
 		case REG_MODE_STAT:
 			return;
-		case REG_PRTN3_STAT:
+		case REG_PRTN2_STAT:
 			return;
 		case REG_CTRL_KEY:
 PERFORM_WRITE(REG_CTRL_KEY, val);
 			if(conf_control==0) conf_control++;
 if(conf_control==1) {
 timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
-timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}
+timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}
 ;			break;
 		case REG_PRTN0_STAT:
 			return;
+		case REG_PRTN3_STAT:
+			return;
 
     default:
-        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_mc_me_ops = {
@@ -132,15 +142,19 @@ static void s32g2_mc_me_reset(DeviceState *dev)
     S32G2mc_meState *s = S32G2_MC_ME(dev); 
 
     /* Set default values for registers */
-    	PERFORM_WRITE(REG_MODE_STAT,0);
+    	PERFORM_WRITE(REG_PRTN2_PUPD,0);
+	PERFORM_WRITE(REG_MODE_STAT,0);
 	PERFORM_WRITE(REG_PRTN0_PUPD,0);
-	PERFORM_WRITE(REG_PRTN3_STAT,0);
+	PERFORM_WRITE(REG_PRTN2_STAT,0x4);
+	PERFORM_WRITE(REG_PRTN2_COFB0_STAT,0);
 	PERFORM_WRITE(REG_CTRL_KEY,0x5af0);
 	PERFORM_WRITE(REG_PRTN3_PUPD,0);
 	PERFORM_WRITE(REG_PRTN3_PCONF,0);
 	PERFORM_WRITE(REG_PRTN0_PCONF,0x1);
 	PERFORM_WRITE(REG_PRTN0_STAT,0x1);
 	PERFORM_WRITE(REG_PRTN0_COFB0_STAT,0);
+	PERFORM_WRITE(REG_PRTN2_PCONF,0x4);
+	PERFORM_WRITE(REG_PRTN3_STAT,0);
 
 }
 

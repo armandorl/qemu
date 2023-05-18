@@ -88,6 +88,7 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_I2C2]  = 0x401Ec000,
     [S32G2_DEV_MC_CGM]  = 0x40030000,
     [S32G2_DEV_MC_CGM1]  = 0x40034000,
+    [S32G2_DEV_MC_CGM2]  = 0x44018000,
     [S32G2_DEV_MC_CGM5]  = 0x40068000,
     [S32G2_DEV_PLL]     = 0x40038000,
     [S32G2_DEV_PERIPH_PLL]     = 0x4003C000,
@@ -95,15 +96,22 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_XOSC]    = 0x40050000,
     [S32G2_DEV_DFS]    = 0x40054000,
     [S32G2_DEV_PERIPH_DFS]    = 0x40058000,
+    [S32G2_DEV_RTC]     = 0x40060000,
     [S32G2_DEV_MC_RGM]  = 0x40078000,
     [S32G2_DEV_RDC]    = 0x40080000,
     [S32G2_DEV_MC_ME]  = 0x40088000,
     [S32G2_DEV_WKPU]  =  0x40090000,
     [S32G2_DEV_SIUL2]  =  0x4009C000,
     [S32G2_DEV_QSPI_REGS]  =  0x40134000,
+    [S32G2_DEV_SERDES0]  =  0x40480000,
+    [S32G2_DEV_SERDES1]  =  0x44180000,
     [S32G2_DEV_SIUL2_1]  =  0x44010000,
     [S32G2_DEV_LINFLEX0]   = 0x401C8000,
     [S32G2_DEV_LINFLEX1]   = 0x401CC000,
+    [S32G2_DEV_HSEMU0]     = 0x40210000,
+    [S32G2_DEV_HSEMU1]     = 0x40211000,
+    [S32G2_DEV_HSEMU2]     = 0x40212000,
+    [S32G2_DEV_HSEMU3]     = 0x40213000,
     [S32G2_DEV_LINFLEX2]   = 0x402BC000,
     [S32G2_DEV_DDRPHY]     = 0x40380000,
     [S32G2_DEV_DDRSS]      = 0x403C0000,
@@ -186,18 +194,24 @@ struct S32G2Unimplemented {
     { "s-brom",    0xffff0000, 64 * KiB }
 #endif
     { "concerto",  0x50400000, 1 * MiB },
+#if 0
     { "PLLAcc",    0x40040000, 12 * KiB },
     { "RTC",       0x40060000, 4 * KiB },
+#endif
     { "OCOTP",     0x400A4000, 4 * KiB }, /* On chip One Time Programmable - eFuses*/
+#if 0
     { "STM0",      0x40110000, 12 * KiB },
     { "STM1",      0x40120000, 12 * KiB },
     { "STM2",      0x40124000, 12 * KiB },
     { "STM3",      0x40128000, 12 * KiB },
+#endif
     { "DMAMUX0",   0x4012C000, 12 * KiB },
     { "DMAMUX1",   0x40130000, 12 * KiB },
     { "EDMA0",     0x40144000, 12 * KiB },
     { "EDMA0CHAN", 0x40148000, 128 * KiB },
+#if 0
     { "HSE",       0x40210000, 16 * KiB },
+#endif
     { "DMAMUX2",   0x4022C000, 12 * KiB },
     { "DMAMUX3",   0x40230000, 12 * KiB },
     { "EDMA1",     0x40244000, 12 * KiB },
@@ -208,7 +222,8 @@ struct S32G2Unimplemented {
     { "LLCE",      0x43000000, 16 * MiB },
     { "DDRSS1",    0x40390000, 0x20000 },
     { "DDRSS2",    0x403A0000, 0x20000 },
-    { "DDRSS3",    0x403D0000, 0x20000 }
+    { "DDRSS3",    0x403D0000, 0x20000 },
+    { "SERDES0",   0x40400000, 1 * MiB }
 
 };
 
@@ -422,6 +437,9 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "sram_ctrl_stdby", &s->sram_ctrl_stdby, TYPE_S32G2_SRAMC);
     object_initialize_child(obj, "mc_cgm", &s->mc_cgm, TYPE_S32G2_MC_CGM);
     object_initialize_child(obj, "mc_cgm1", &s->mc_cgm1, TYPE_S32G2_MC_CGM1);
+#if 0
+    object_initialize_child(obj, "mc_cgm2", &s->mc_cgm2, TYPE_S32G2_MC_CGM2);
+#endif
     object_initialize_child(obj, "mc_cgm5", &s->mc_cgm5, TYPE_S32G2_MC_CGM5);
     object_initialize_child(obj, "mc_rgm", &s->mc_rgm, TYPE_S32G2_MC_RGM);
     object_initialize_child(obj, "mc_me", &s->mc_me, TYPE_S32G2_MC_ME);
@@ -433,9 +451,15 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "siul2_1", &s->siul2_1, TYPE_S32G2_SIUL2_1);
     object_initialize_child(obj, "pll", &s->pll, TYPE_S32G2_PLL);
     object_initialize_child(obj, "qspi", &s->qspi, TYPE_S32G2_QSPI);
+    object_initialize_child(obj, "serdes0", &s->serdes0, TYPE_S32G2_SERDES);
+    object_initialize_child(obj, "serdes1", &s->serdes1, TYPE_S32G2_SERDES);
     object_initialize_child(obj, "periph_pll", &s->periph_pll, TYPE_S32G2_PLL);
     object_initialize_child(obj, "ddr_pll", &s->ddr_pll, TYPE_S32G2_PLL);
     object_initialize_child(obj, "rdc", &s->rdc, TYPE_S32G2_RDC);
+    object_initialize_child(obj, "hsemu0", &s->hsemu0, TYPE_S32G2_HSEMU);
+    object_initialize_child(obj, "hsemu1", &s->hsemu1, TYPE_S32G2_HSEMU);
+    object_initialize_child(obj, "hsemu2", &s->hsemu2, TYPE_S32G2_HSEMU);
+    object_initialize_child(obj, "hsemu3", &s->hsemu3, TYPE_S32G2_HSEMU);
     object_initialize_child(obj, "linflex0", &s->linflex0, TYPE_S32G2_LINFLEX);
     object_initialize_child(obj, "linflex1", &s->linflex1, TYPE_S32G2_LINFLEX);
     object_initialize_child(obj, "linflex2", &s->linflex2, TYPE_S32G2_LINFLEX);
@@ -449,8 +473,9 @@ static void s32g2_init(Object *obj)
                              "ram-addr");
     object_property_add_alias(obj, "ram-size", OBJECT(&s->dramc),
                               "ram-size");
-    object_initialize_child(obj, "rtc", &s->rtc, TYPE_AW_RTC_SUN6I);
-
+#endif
+    object_initialize_child(obj, "rtc", &s->rtc, TYPE_S32G2_RTC);
+#if 0
     object_initialize_child(obj, "twi0",  &s->i2c0,  TYPE_AW_I2C_SUN6I);
     object_initialize_child(obj, "twi1",  &s->i2c1,  TYPE_AW_I2C_SUN6I);
     object_initialize_child(obj, "twi2",  &s->i2c2,  TYPE_AW_I2C_SUN6I);
@@ -573,7 +598,10 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm1), 0, s->memmap[S32G2_DEV_MC_CGM1]);
-
+#if 0
+    sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm2), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm2), 0, s->memmap[S32G2_DEV_MC_CGM2]);
+#endif
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm5), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm5), 0, s->memmap[S32G2_DEV_MC_CGM5]);
 
@@ -595,6 +623,12 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->qspi), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->qspi), 0, s->memmap[S32G2_DEV_QSPI_REGS]);
 
+    sysbus_realize(SYS_BUS_DEVICE(&s->serdes0), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->serdes0), 0, s->memmap[S32G2_DEV_SERDES0]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->serdes1), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->serdes1), 0, s->memmap[S32G2_DEV_SERDES1]);
+
     sysbus_realize(SYS_BUS_DEVICE(&s->pll), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->pll), 0, s->memmap[S32G2_DEV_PLL]);
 
@@ -615,6 +649,18 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->rdc), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->rdc), 0, s->memmap[S32G2_DEV_RDC]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->hsemu0), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->hsemu0), 0, s->memmap[S32G2_DEV_HSEMU0]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->hsemu1), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->hsemu1), 0, s->memmap[S32G2_DEV_HSEMU1]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->hsemu2), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->hsemu2), 0, s->memmap[S32G2_DEV_HSEMU2]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->hsemu3), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->hsemu3), 0, s->memmap[S32G2_DEV_HSEMU3]);
 
     s32g2_linflex_props_init(&s->linflex0,
                    qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_UART0),
@@ -758,10 +804,11 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->dramc), 1, s->memmap[S32G2_DEV_DRAMCTL]);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->dramc), 2, s->memmap[S32G2_DEV_DRAMPHY]);
 
+#endif
     /* RTC */
     sysbus_realize(SYS_BUS_DEVICE(&s->rtc), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->rtc), 0, s->memmap[S32G2_DEV_RTC]);
-
+#if 0
     /* I2C */
     sysbus_realize(SYS_BUS_DEVICE(&s->i2c0), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->i2c0), 0, s->memmap[S32G2_DEV_TWI0]);

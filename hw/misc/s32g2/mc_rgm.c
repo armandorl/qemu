@@ -30,8 +30,16 @@
 static int debug=0;
 
 enum {
+	REG_PSTAT3=	0x158,
+	REG_PSTAT2=	0x150,
+	REG_PSTAT1=	0x148,
 	REG_DES=	0x0,
+	REG_PRST0=	0x40,
 	REG_FES=	0x8,
+	REG_PRST2=	0x50,
+	REG_PRST3=	0x58,
+	REG_PSTAT0=	0x140,
+	REG_PRST1=	0x48,
 };
 
 
@@ -72,13 +80,37 @@ static void s32g2_mc_rgm_write(void *opaque, hwaddr offset,
 
     switch (offset) {
     
+		case REG_PSTAT3:
+			return;
+		case REG_PSTAT2:
+			return;
+		case REG_PSTAT1:
+			return;
+		case REG_PRST0:
+PERFORM_WRITE(REG_PRST0, val);
+			PERFORM_WRITE(REG_PSTAT0, val);
+;			break;
+		case REG_PRST2:
+PERFORM_WRITE(REG_PRST2, val);
+			PERFORM_WRITE(REG_PSTAT2, val);
+;			break;
+		case REG_PRST3:
+PERFORM_WRITE(REG_PRST3, val);
+			PERFORM_WRITE(REG_PSTAT3, val);
+;			break;
+		case REG_PSTAT0:
+			return;
+		case REG_PRST1:
+PERFORM_WRITE(REG_PRST1, val);
+			PERFORM_WRITE(REG_PSTAT1, val);
+;			break;
 
     default:
-        /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    /* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_mc_rgm_ops = {
@@ -97,8 +129,16 @@ static void s32g2_mc_rgm_reset(DeviceState *dev)
     S32G2mc_rgmState *s = S32G2_MC_RGM(dev); 
 
     /* Set default values for registers */
-    	PERFORM_WRITE(REG_DES,0x1);
+    	PERFORM_WRITE(REG_PSTAT3,0x0);
+	PERFORM_WRITE(REG_PSTAT2,0x0);
+	PERFORM_WRITE(REG_PSTAT1,0x0);
+	PERFORM_WRITE(REG_DES,0x1);
+	PERFORM_WRITE(REG_PRST0,0x0);
 	PERFORM_WRITE(REG_FES,0x0);
+	PERFORM_WRITE(REG_PRST2,0x0);
+	PERFORM_WRITE(REG_PRST3,0x0);
+	PERFORM_WRITE(REG_PSTAT0,0x0);
+	PERFORM_WRITE(REG_PRST1,0x0);
 
 }
 

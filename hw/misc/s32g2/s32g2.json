@@ -10,7 +10,7 @@
 				"MUX_0_CSC" : {
 					"offset": "0x300",
 					"reset": "0x0",
-					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x0F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (val & 0x0F00000F) | BIT(17));"
 				},
 				"MUX_0_CSS" : {
 					"offset": "0x304",
@@ -20,7 +20,7 @@
 				"MUX_1_CSC" : {
 					"offset": "0x340",
 					"reset": "0x02000000",
-					"action": "PERFORM_WRITE(REG_MUX_1_CSC, PERFORM_READ(REG_MUX_1_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_1_CSS, (PERFORM_READ(REG_MUX_1_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_1_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_1_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_1_CSS" : {
 					"offset": "0x344",
@@ -35,7 +35,7 @@
 				"MUX_3_CSC" : {
 					"offset": "0x3c0",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_3_CSC, PERFORM_READ(REG_MUX_3_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_3_CSS, (PERFORM_READ(REG_MUX_3_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_3_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_3_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_3_CSS" : {
 					"offset": "0x3C4",
@@ -45,7 +45,7 @@
 				"MUX_4_CSC" : {
 					"offset": "0x400",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_4_CSC, PERFORM_READ(REG_MUX_4_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_4_CSS, (PERFORM_READ(REG_MUX_4_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_4_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_4_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_4_CSS" : {
 					"offset": "0x404",
@@ -55,7 +55,7 @@
 				"MUX_5_CSC" : {
 					"offset": "0x440",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_5_CSC, PERFORM_READ(REG_MUX_5_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_5_CSS, (PERFORM_READ(REG_MUX_5_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_5_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_5_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_5_CSS" : {
 					"offset": "0x444",
@@ -65,7 +65,7 @@
 				"MUX_6_CSC" : {
 					"offset": "0x480",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_6_CSC, PERFORM_READ(REG_MUX_6_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_6_CSS, (PERFORM_READ(REG_MUX_6_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_6_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_6_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_6_CSS" : {
 					"offset": "0x484",
@@ -75,7 +75,7 @@
 				"MUX_7_CSC" : {
 					"offset": "0x4c0",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_7_CSC, PERFORM_READ(REG_MUX_7_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_7_CSS, (PERFORM_READ(REG_MUX_7_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_7_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_7_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_7_CSS" : {
 					"offset": "0x4c4",
@@ -85,7 +85,7 @@
 				"MUX_8_CSC" : {
 					"offset": "0x500",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_8_CSC, PERFORM_READ(REG_MUX_8_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_8_CSS, (PERFORM_READ(REG_MUX_8_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_8_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_8_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_8_CSS" : {
 					"offset": "0x504",
@@ -95,7 +95,7 @@
 				"MUX_9_CSC" : {
 					"offset": "0x540",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_9_CSC, PERFORM_READ(REG_MUX_9_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_9_CSS, (PERFORM_READ(REG_MUX_9_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_9_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_9_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_9_CSS" : {
 					"offset": "0x544",
@@ -105,7 +105,7 @@
 				"MUX_10_CSC" : {
 					"offset": "0x580",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_10_CSC, PERFORM_READ(REG_MUX_10_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_10_CSS, (PERFORM_READ(REG_MUX_10_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_10_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_10_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_10_CSS" : {
 					"offset": "0x584",
@@ -115,7 +115,7 @@
 				"MUX_11_CSC" : {
 					"offset": "0x5C0",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_11_CSC, PERFORM_READ(REG_MUX_11_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_11_CSS, (PERFORM_READ(REG_MUX_11_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_11_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_11_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_11_CSS" : {
 					"offset": "0x5C4",
@@ -125,7 +125,7 @@
 				"MUX_12_CSC" : {
 					"offset": "0x600",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_12_CSC, PERFORM_READ(REG_MUX_12_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_12_CSS, (PERFORM_READ(REG_MUX_12_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_12_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_12_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_12_CSS" : {
 					"offset": "0x604",
@@ -140,7 +140,7 @@
 				"MUX_14_CSC" : {
 					"offset": "0x680",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_14_CSC, PERFORM_READ(REG_MUX_14_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_14_CSS, (PERFORM_READ(REG_MUX_14_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_14_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_14_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_14_CSS" : {
 					"offset": "0x684",
@@ -150,7 +150,7 @@
 				"MUX_15_CSC" : {
 					"offset": "0x6C0",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_15_CSC, PERFORM_READ(REG_MUX_15_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_15_CSS, (PERFORM_READ(REG_MUX_15_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_15_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_15_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_15_CSS" : {
 					"offset": "0x6c4",
@@ -160,7 +160,7 @@
 				"MUX_16_CSC" : {
 					"offset": "0x700",
 					"reset": "0x00000000",
-					"action": "PERFORM_WRITE(REG_MUX_16_CSC, PERFORM_READ(REG_MUX_16_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_16_CSS, (PERFORM_READ(REG_MUX_16_CSC) & 0x1F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_16_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_16_CSS, (val & 0x1F00000F) | BIT(17));"
 				},
 				"MUX_16_CSS" : {
 					"offset": "0x704",
@@ -189,11 +189,37 @@
 				"MUX_0_CSC" : {
 					"offset": "0x300",
 					"reset": "0x0",
-					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x07000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, ((val & 0x0700000F) | BIT(17)));"
 				},
 				"MUX_0_CSS" : {
 					"offset": "0x304",
 					"reset": "0x00080000"
+				}
+
+			},
+			"size":"0x400"
+		},
+		"RTC":{
+			"soc": "s32g2",
+			"name": "rtc",
+			"offset" : "0x40060000",
+			"description": "Real Time Clock Module",
+			"helpers": "static int supervisor_mode=1;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\n /*S32G2rtcState *s = S32G2_MC_ME(opaque);*/ }",
+			"registers": {
+				"RTCSUPV" : {
+					"offset": "0x0",
+					"reset": "0x80000000",
+					"action": "supervisor_mode=!!(val&0x80000000);"
+				},
+				"RTCC" : {
+					"offset": "0x4",
+					"reset": "0x0",
+					"action": "if(supervisor_mode) { printf(\"Set RTC:0x%08lx\\n\", val);\n if(val&0x80000000){ printf(\"RTC timer enabled\\n\");\ntimer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100); } }\nelse{ printf(\"ERROR: Set RTC value while not on supervisor mode\\n\");}"
+				},
+				"RTCS" : {
+					"offset": "0x8",
+					"reset": "0x80000000",
+					"action": "supervisor_mode=1;"
 				}
 
 			},
@@ -209,7 +235,7 @@
 				"MUX_0_CSC" : {
 					"offset": "0x300",
 					"reset": "0x0",
-					"action": "PERFORM_WRITE(REG_MUX_0_CSC, PERFORM_READ(REG_MUX_0_CSC) & 0xFFFFFFF0); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (PERFORM_READ(REG_MUX_0_CSC) & 0x3F000000) | BIT(17));"
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (val & 0x3F00000F) | BIT(17));"
 				},
 				"MUX_0_CSS" : {
 					"offset": "0x304",
@@ -313,6 +339,50 @@
 				"FES" : {
 					"offset": "0x8",
 					"reset": "0x0"
+				},
+				"FES" : {
+					"offset": "0x8",
+					"reset": "0x0"
+				},
+				"PRST0" : {
+					"offset": "0x40",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_PSTAT0, val);"
+				},
+				"PRST1" : {
+					"offset": "0x48",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_PSTAT1, val);"
+				},
+				"PRST2" : {
+					"offset": "0x50",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_PSTAT2, val);"
+				},
+				"PRST3" : {
+					"offset": "0x58",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_PSTAT3, val);"
+				},
+				"PSTAT0" : {
+					"offset": "0x140",
+					"reset": "0x0",
+					"action": "ignore"
+				},
+				"PSTAT1" : {
+					"offset": "0x148",
+					"reset": "0x0",
+					"action": "ignore"
+				},
+				"PSTAT2" : {
+					"offset": "0x150",
+					"reset": "0x0",
+					"action": "ignore"
+				},
+				"PSTAT3" : {
+					"offset": "0x158",
+					"reset": "0x0",
+					"action": "ignore"
 				}
 
 			},
@@ -331,7 +401,8 @@
 				},
 				"RD2_CTRL" : {
 					"offset": "0x8",
-					"reset": "0xf"
+					"reset": "0xf",
+					"action": "if((val&0x8)==0x8)PERFORM_WRITE(REG_RD2_STAT, 0x18);\nif((val&0x8)==0)PERFORM_WRITE(REG_RD2_STAT, 0);"
 				},
 				"RD3_CTRL" : {
 					"offset": "0xC",
@@ -362,12 +433,12 @@
 			"name": "mc_me",
 			"offset" : "0x40088000",
 			"description": "Mode Entry Module",
-			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);\nx=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);\nPERFORM_WRITE(REG_PRTN0_STAT, x);\nPERFORM_WRITE(REG_PRTN0_PUPD, 0);\nPERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
+			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);\nx=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);\nPERFORM_WRITE(REG_PRTN0_STAT, x);\nPERFORM_WRITE(REG_PRTN0_PUPD, 0);\nPERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);\nx=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);\nPERFORM_WRITE(REG_PRTN2_STAT, x);\nPERFORM_WRITE(REG_PRTN2_PUPD, 0);\nPERFORM_WRITE(REG_PRTN2_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
 			"registers": {
 				"CTRL_KEY" : {
 					"offset": "0x0",
 					"reset": "0x5af0",
-					"action": "if(conf_control==0) conf_control++;\nif(conf_control==1) {\ntimer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);}"
+					"action": "if(conf_control==0) conf_control++;\nif(conf_control==1) {\ntimer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}"
 				},
 				"MODE_STAT" : {
 					"offset": "0xC",
@@ -389,6 +460,23 @@
 				},
 				"PRTN0_COFB0_STAT": {
 					"offset": "0x110",
+					"reset": "0"
+				},
+				"PRTN2_PCONF" : {
+					"offset": "0x500",
+					"reset": "0x4"
+				},
+				"PRTN2_PUPD" : {
+					"offset": "0x504",
+					"reset": "0"
+				},
+				"PRTN2_STAT" : {
+					"offset": "0x508",
+					"reset": "0x4",
+					"action":"ignore"
+				},
+				"PRTN2_COFB0_STAT": {
+					"offset": "0x510",
 					"reset": "0"
 				},
 				"PRTN3_PCONF" : {
@@ -443,7 +531,7 @@
 				}
 
 			},
-			"size":"0x2000"
+			"size":"0x5000"
 		},
 		"QSPI":{
 			"soc": "s32g2",
@@ -617,41 +705,26 @@
 			},
 			"size":"0x200"
 		},
-		"LINFlex":{
+		"HSEMU":{
 			"soc": "s32g2",
-			"name": "linFlex",
-			"offset" : ["0x401C8000", "0x401CC000", "0x402BC000"],
-			"description": "LinFlexD",
-			"helpers": "#define LINFLEX_LINCR1_INIT   BIT(0)\n#define LINFLEX_LINCR1_SLEEP   BIT(1)\n#define LINFLEX_LINCR1_MASTER   BIT(4)\n\n\n#define LINFLEX_UARTCR1_UART   BIT(0)\n#define LINFLEX_UARTCR1_TXEN   BIT(4)\n#define LINFLEX_UARTCR1_RXEN   BIT(5)\n#define LINFLEX_UARTCR1_TXFIFO   BIT(8)\n#define LINFLEX_UARTCR1_RXFIFO   BIT(9)\n#define LINFLEX_UARTSR_DTFTFF   BIT(1)\n#define LINFLEX_UARTSR_DRFRFE   BIT(2)\nenum {LINMODE_SLEEP=0, LINMODE_INIT, LINMODE_NORMAL}; static unsigned int linmode=LINMODE_SLEEP;\nstatic unsigned int is_master=0;\nstatic unsigned int uart_mode=0;\nstatic unsigned int tx_fifo_mode=0;\nstatic unsigned int rx_fifo_mode=0;\nunsigned int tx_enable=0;\nunsigned int rx_enable=0;\nvoid linflex_process_lincr1(S32G2linFlexState *s, unsigned int val);\nvoid linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val);\n\nvoid linflex_process_lincr1(S32G2linFlexState *s, unsigned int val){\ndebug=0;switch(val&(LINFLEX_LINCR1_INIT|LINFLEX_LINCR1_SLEEP)){\ncase LINFLEX_LINCR1_INIT:\n linmode=LINMODE_INIT;break;\ncase LINFLEX_LINCR1_SLEEP:\n linmode=LINMODE_SLEEP;break;\ncase LINFLEX_LINCR1_INIT|LINFLEX_LINCR1_SLEEP:\n linmode=LINMODE_SLEEP;break;\ndefault:\nbreak;\n }\n if(linmode==LINFLEX_LINCR1_INIT){ is_master=!!(val&LINFLEX_LINCR1_MASTER);\nPERFORM_WRITE(REG_LINSR, LINMODE_INIT<<12); }\nelse if(linmode==LINMODE_NORMAL){PERFORM_WRITE(REG_LINSR, LINMODE_NORMAL<<12);}\nelse { PERFORM_WRITE(REG_LINSR, LINMODE_SLEEP<<12);}  }\nvoid linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val){ if(linmode==LINMODE_INIT)\n{ uart_mode=!!(val&LINFLEX_UARTCR1_UART);\ntx_fifo_mode=!!(val&LINFLEX_UARTCR1_TXFIFO);\nrx_fifo_mode=!!(val&LINFLEX_UARTCR1_RXFIFO);\ntx_enable=!!(val&LINFLEX_UARTCR1_TXEN);\nrx_enable=!!(val&LINFLEX_UARTCR1_RXEN);\n\nif(tx_fifo_mode){PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE) & ~(LINFLEX_UARTSR_DTFTFF)  );\n}\nelse {\n PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF  );\n}\n}\n}",
+			"name": "hsemu",
+			"offset" : "0x40210000",
+			"description": "HSE messaging Unit Module",
+			"helpers": "",
 			"registers": {
-				"LINCR1" : {
+				"VER" : {
 					"offset": "0x0",
-					"reset": "0x82",
-					"action":"linflex_process_lincr1(s, val);"
-				},
-				"LINSR" : {
-					"offset": "0x8",
-					"reset": "0x40",
+					"reset": "0x0300000F",
 					"action":"ignore"
 				},
-				"UARTCR1" : {
-					"offset": "0x10",
-					"reset": "0x0",
-					"action":"linflex_process_uartcr1(s, val);"
-				},
-				"UARTSR" : {
-					"offset": "0x14",
-					"reset": "0x4"
-				},
-				"BDRL" : {
-					"offset": "0x38",
-					"reset": "0x0",
-					"action":"if(tx_fifo_mode) {PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~(LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF)));} else {PERFORM_WRITE(REG_UARTSR, ((PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DTFTFF) & ~LINFLEX_UARTSR_DRFRFE)); }\nprintf(\"%c\", (int)val); return; /* TODO: How to use qemu serial output? */"
+				"PAR" : {
+					"offset": "0x4",
+					"reset": "0x20201010",
+					"action":"ignore"
 				}
 
 			},
-			"size":"0x100",
-			"min_access":1
+			"size":"0x1000"
 		},
 		"DDRSS":{
 			"soc": "s32g2",
@@ -731,6 +804,84 @@
 			"size":"0x10000",
 			"min_access":1
 		},
+		"SERDES":{
+			"soc": "s32g2",
+			"name": "serdes",
+			"offset" : "0x40480000",
+			"description": "SERDES",
+			"helpers": "",
+			"registers": {
+				"MPLLA_CTRL" : {
+					"offset": "0x10",
+					"reset": "0xC0000001",
+					"action":"ignore"
+				},
+				"MPLLB_CTRL" : {
+					"offset": "0x14",
+					"reset": "0xC0000001",
+					"action":"ignore"
+				},
+				"SS_RO_REG_0" : {
+					"offset": "0xE0",
+					"reset": "0x03FCC018",
+					"action":"ignore"
+				},
+				"SS_RO_REG_1" : {
+					"offset": "0xE4",
+					"reset": "0x08010000",
+					"action":"ignore"
+				},
+				"PE0_LINK_DBG_2" : {
+					"offset": "0x10B4",
+					"reset": "0xD1",
+					"action":"ignore"
+				},
+				"XPCS_STAT1" : {
+					"offset": "0x2040",
+					"reset": "0x10",
+					"action":"ignore"
+				},
+				"XPCS_SR_MII_STAT" : {
+					"offset": "0x2000",
+					"reset": "0x0",
+					"action":"break;"
+				},
+				"XPCS_BITS" : {
+					"offset": "0x20c8",
+					"reset": "0x0",
+					"action":"break;"
+				},
+				"XPCS_BITS2" : {
+					"offset": "0x2148",
+					"reset": "0x0",
+					"action":"break;"
+				},
+				"XPCS_MII_STAT" : {
+					"offset": "0x2800",
+					"reset": "0x0",
+					"action":"break;"
+				},
+				"XPCS_STAT2" : {
+					"offset": "0x2840",
+					"reset": "0x10",
+					"action":"ignore"
+				},
+				"XPCS_SR_MII_CTRL" : {
+					"offset": "0x23fc",
+					"reset": "0x0",
+					"action":"PERFORM_WRITE(REG_XPCS_SR_MII_STAT, 0); PERFORM_WRITE(REG_XPCS_BITS, 0); PERFORM_WRITE(REG_XPCS_BITS2, 0);"
+				},
+				"XPCS_MII_CTRL" : {
+					"offset": "0x2bfc",
+					"reset": "0x0",
+					"action":"PERFORM_WRITE(REG_XPCS_MII_STAT, PERFORM_READ(REG_XPCS_MII_STAT) & ~BIT(15));"
+				}
+
+
+			},
+			"size":"0x40000",
+			"min_access":1
+		},
 		"SIUL2_1":{
 			"soc": "s32g2",
 			"name": "siul2_1",
@@ -751,6 +902,117 @@
 
 			},
 			"size":"0x2000"
+		},
+		"MC_CGM2":{
+			"soc": "s32g2",
+			"name": "mc_cgm2",
+			"offset" : "0x44018000",
+			"description": "Clock Generation Module 2",
+			"helpers": "",
+			"registers": {
+				"MUX_0_CSC" : {
+					"offset": "0x300",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_0_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_0_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_0_CSS" : {
+					"offset": "0x304",
+					"reset": "0x80000",
+					"action": "ignore"
+				},
+				"MUX_1_CSC" : {
+					"offset": "0x340",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_1_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_1_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_1_CSS" : {
+					"offset": "0x344",
+					"reset": "0x80000",
+					"action": "ignore"
+				},
+				"MUX_2_CSC" : {
+					"offset": "0x380",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_2_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_2_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_2_CSS" : {
+					"offset": "0x384",
+					"reset": "0x80000",
+					"action": "ignore"
+				},
+				"MUX_3_CSC" : {
+					"offset": "0x3c0",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_MUX_3_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_3_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_3_CSS" : {
+					"offset": "0x3C4",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_4_CSC" : {
+					"offset": "0x400",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_4_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_4_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_4_CSS" : {
+					"offset": "0x404",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_5_CSC" : {
+					"offset": "0x440",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_5_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_5_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_5_CSS" : {
+					"offset": "0x444",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_6_CSC" : {
+					"offset": "0x480",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_6_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_6_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_6_CSS" : {
+					"offset": "0x484",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_7_CSC" : {
+					"offset": "0x4c0",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_7_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_7_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_7_CSS" : {
+					"offset": "0x4c4",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_8_CSC" : {
+					"offset": "0x500",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_8_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_8_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_8_CSS" : {
+					"offset": "0x504",
+					"reset": "0x00080000",
+					"action": "ignore"
+				},
+				"MUX_9_CSC" : {
+					"offset": "0x540",
+					"reset": "0x00000000",
+					"action": "PERFORM_WRITE(REG_MUX_9_CSC, (val & 0xFFFFFFF0)); /* Auto clear */\nPERFORM_WRITE(REG_MUX_9_CSS, (val & 0x3F00000F) | BIT(17));"
+				},
+				"MUX_9_CSS" : {
+					"offset": "0x544",
+					"reset": "0x00080000",
+					"action": "ignore"
+				}
+
+			},
+			"size":"0x400"
 		}
 	}
 }

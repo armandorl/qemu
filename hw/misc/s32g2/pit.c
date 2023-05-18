@@ -76,116 +76,110 @@ enum {
 #define PIT_TCRL_TEN    BIT(0)
 
 static QEMUTimer qemu_timer; static unsigned int pits_disabled=0;
-static uint64_t timer[PIT_MAX_TIMERS]={0};
+static usigned long long timer[PIT_MAX_TIMERS]={0};
 static unsigned int timer_status[PIT_MAX_TIMERS]={0};
 
 static void process_expired_timer(unsigned int idx, void* opaque){
-	S32G2pitState *s = S32G2_PIT(opaque);
-	if(idx==0)SET_FLAG(0);
-	if(idx==1)SET_FLAG(1);
-	if(idx==2)SET_FLAG(2);
-	if(idx==3)SET_FLAG(3);
-	if(idx==4)SET_FLAG(4);
-	if(idx==5)SET_FLAG(5);
-	if(idx==6)SET_FLAG(6);
+S32G2pitState *s = S32G2_PIT(opaque);
+SET_FLAG(idx);
 }
 static void pit_timer_handler(void* opaque){
-	S32G2pitState *s = S32G2_PIT(opaque);
-	int i=0;
+S32G2pitState *s = S32G2_PIT(opaque);
+unsigned int i=0;
 
-	for(i=PIT_MAX_TIMERS-1; i>=0;i--){
-		if((timer_status[i]&PIT_TCRL_TEN)==PIT_TCRL_TEN){
-			timer[i]--;
-			SET_CURR_TIMER(i,(i-1),((timer_status[i]&PIT_TCTRL_CHN)==PIT_TCTRL_CHN),timer);
-			if(timer==0){process_expired_timer(i, (void*)s);}
-			if((timer_status[i]&PIT_TCTRL_CHN)==PIT_TCTRL_CHN){
-				i--; } }
-	}
-	timer_mod(&qemu_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + 10);
+for(i=PIT_MAX_TIMERS-1; i>=0;i--){
+if((timer_status[i]&PIT_TCRL_TEN)==PIT_TCRL_TEN){
+timer--;
+SET_CURR_TIMER(i,(i-1),((timer_status[i]&PIT_TCTRL_CHN)==PIT_TCTRL_CHN),timer);
+if(timer==0){process_expired_timer(i, (void*)s);}
+if((timer_status[i]&PIT_TCTRL_CHN)==PIT_TCTRL_CHN){
+ i--; } }
+}
+timer_mod(&qemu_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + 10);
 }
 void set_timer_status(unsigned int idx, unsigned int value);
 
 void set_pit_timer(int idx, unsigned int value){
-	if((pits_disabled==0) && (idx<PIT_MAX_TIMERS)){
-		timer_status[idx]=value; timer_init_ns(&qemu_timer, QEMU_CLOCK_VIRTUAL, pit_timer_handler, s); } }
-		void pit_load_value(unsigned int idx, unsigned int value){
-			if(((timer_status[i]&PIT_TCRL_TEN)==PIT_TCRL_TEN) && (idx < PIT_MAX_TIMERS))timer[idx]=value;
-		}
+if((pits_disabled==0) && (idx<PIT_MAX_TIMERS)){
+timer_status[idx]=value; timer_init_ns(&qemu_timer, QEMU_CLOCK_VIRTUAL, pit_timer_handler, s); } }
+void pit_load_value(unsigned int idx, unsigned int value){
+ if(((timer_status[i]&PIT_TCRL_TEN)==PIT_TCRL_TEN) && (idx < PIT_MAX_TIMERS))timer[idx]=value;
+}
 
 
 static uint64_t s32g2_pit_read(void *opaque, hwaddr offset,
-		unsigned size)
+                                          unsigned size)
 {
-	const S32G2pitState *s = S32G2_PIT(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    const S32G2pitState *s = S32G2_PIT(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_PIT_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return 0;
-	}
+    if (idx >= S32G2_PIT_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return 0;
+    }
 
-	uint64_t retVal = s->regs[idx];
-	if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
-	return retVal;
+    uint64_t retVal = s->regs[idx];
+    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
+    return retVal;
 }
 
 static void s32g2_pit_write(void *opaque, hwaddr offset,
-		uint64_t val, unsigned size)
+                                       uint64_t val, unsigned size)
 {
-	S32G2pitState *s = S32G2_PIT(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    S32G2pitState *s = S32G2_PIT(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_PIT_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return;
-	}
+    if (idx >= S32G2_PIT_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return;
+    }
 
-	switch (offset) {
-
+    switch (offset) {
+    
 		case REG_TCTRL5:
-			PERFORM_WRITE(REG_TCTRL5, val);
+PERFORM_WRITE(REG_TCTRL5, val);
 			set_pit_timer(5, val);
-			;			break;
+;			break;
 		case REG_TCTRL4:
-			PERFORM_WRITE(REG_TCTRL4, val);
+PERFORM_WRITE(REG_TCTRL4, val);
 			set_pit_timer(4, val);
-			;			break;
+;			break;
 		case REG_LDVAL1:
-			PERFORM_WRITE(REG_LDVAL1, val);
+PERFORM_WRITE(REG_LDVAL1, val);
 			pit_load_value(1, val);
-			;			break;
+;			break;
 		case REG_LDVAL0:
-			PERFORM_WRITE(REG_LDVAL0, val);
+PERFORM_WRITE(REG_LDVAL0, val);
 			pit_load_value(0, val);
-			;			break;
+;			break;
 		case REG_LDVAL3:
-			PERFORM_WRITE(REG_LDVAL3, val);
+PERFORM_WRITE(REG_LDVAL3, val);
 			pit_load_value(3, val);
-			;			break;
+;			break;
 		case REG_LDVAL2:
-			PERFORM_WRITE(REG_LDVAL2, val);
+PERFORM_WRITE(REG_LDVAL2, val);
 			pit_load_value(2, val);
-			;			break;
+;			break;
 		case REG_LDVAL5:
-			PERFORM_WRITE(REG_LDVAL5, val);
+PERFORM_WRITE(REG_LDVAL5, val);
 			pit_load_value(5, val);
-			;			break;
+;			break;
 		case REG_LDVAL4:
-			PERFORM_WRITE(REG_LDVAL4, val);
+PERFORM_WRITE(REG_LDVAL4, val);
 			pit_load_value(4, val);
-			;			break;
+;			break;
 		case REG_LDVAL6:
-			PERFORM_WRITE(REG_LDVAL6, val);
+PERFORM_WRITE(REG_LDVAL6, val);
 			pit_load_value(6, val);
-			;			break;
+;			break;
 		case REG_TFLG6:
 			return;
 		case REG_TCTRL2:
-			PERFORM_WRITE(REG_TCTRL2, val);
+PERFORM_WRITE(REG_TCTRL2, val);
 			set_pit_timer(2, val);
-			;			break;
+;			break;
 		case REG_TFLG4:
 			return;
 		case REG_TFLG5:
@@ -193,29 +187,29 @@ static void s32g2_pit_write(void *opaque, hwaddr offset,
 		case REG_TFLG2:
 			return;
 		case REG_TCTRL6:
-			PERFORM_WRITE(REG_TCTRL6, val);
+PERFORM_WRITE(REG_TCTRL6, val);
 			set_pit_timer(6, val);
-			;			break;
+;			break;
 		case REG_TFLG0:
 			return;
 		case REG_TFLG1:
 			return;
 		case REG_TCTRL3:
-			PERFORM_WRITE(REG_TCTRL3, val);
+PERFORM_WRITE(REG_TCTRL3, val);
 			set_pit_timer(3, val);
-			;			break;
+;			break;
 		case REG_CVAL6:
 			return;
 		case REG_TCTRL1:
-			PERFORM_WRITE(REG_TCTRL1, val);
+PERFORM_WRITE(REG_TCTRL1, val);
 			set_pit_timer(1, val);
-			;			break;
+;			break;
 		case REG_CVAL0:
 			return;
 		case REG_TCTRL0:
-			PERFORM_WRITE(REG_TCTRL0, val);
+PERFORM_WRITE(REG_TCTRL0, val);
 			set_pit_timer(0, val);
-			;			break;
+;			break;
 		case REG_CVAL5:
 			return;
 		case REG_CVAL4:
@@ -225,40 +219,40 @@ static void s32g2_pit_write(void *opaque, hwaddr offset,
 		case REG_CVAL1:
 			return;
 		case REG_MCR:
-			PERFORM_WRITE(REG_MCR, val);
+PERFORM_WRITE(REG_MCR, val);
 			if((val&PIT_MCR_MDIS)==PIT_MCR_MDIS){pits_disabled=1;}else{pits_disabled=0;}
 
-			;			break;
+;			break;
 		case REG_CVAL3:
 			return;
 		case REG_TFLG3:
 			return;
 
-		default:
-			/* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
-			s->regs[idx] = (uint32_t) val;
-			return;
-	}
-	/* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+    default:
+        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
+        s->regs[idx] = (uint32_t) val;
+        return;
+    }
+    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_pit_ops = {
-	.read = s32g2_pit_read,
-	.write = s32g2_pit_write,
-	.endianness = DEVICE_NATIVE_ENDIAN,
-	.valid = {
-		.min_access_size = 4,
-		.max_access_size = 4,
-	},
-	.impl.min_access_size = 4,
+    .read = s32g2_pit_read,
+    .write = s32g2_pit_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .impl.min_access_size = 4,
 };
 
 static void s32g2_pit_reset(DeviceState *dev)
 {
-	S32G2pitState *s = S32G2_PIT(dev); 
+    S32G2pitState *s = S32G2_PIT(dev); 
 
-	/* Set default values for registers */
-	PERFORM_WRITE(REG_TCTRL5,0x0);
+    /* Set default values for registers */
+    	PERFORM_WRITE(REG_TCTRL5,0x0);
 	PERFORM_WRITE(REG_TCTRL4,0x0);
 	PERFORM_WRITE(REG_LDVAL1,0x0);
 	PERFORM_WRITE(REG_LDVAL0,0x0);
@@ -292,44 +286,44 @@ static void s32g2_pit_reset(DeviceState *dev)
 
 static void s32g2_pit_init(Object *obj)
 {
-	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-	S32G2pitState *s = S32G2_PIT(obj);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    S32G2pitState *s = S32G2_PIT(obj);
 
-	/* Memory mapping */
-	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_pit_ops, s,
-			TYPE_S32G2_PIT, 0x200);
-	sysbus_init_mmio(sbd, &s->iomem);
+    /* Memory mapping */
+    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_pit_ops, s,
+                           TYPE_S32G2_PIT, 0x200);
+    sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_pit_vmstate = {
-	.name = "s32g2_pit",
-	.version_id = 1,
-	.minimum_version_id = 1,
-	.fields = (VMStateField[]) {
-		VMSTATE_UINT32_ARRAY(regs, S32G2pitState, S32G2_PIT_REGS_NUM),
-		VMSTATE_END_OF_LIST()
-	}
+    .name = "s32g2_pit",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, S32G2pitState, S32G2_PIT_REGS_NUM),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static void s32g2_pit_class_init(ObjectClass *klass, void *data)
 {
-	DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
 
-	dc->reset = s32g2_pit_reset;
-	dc->vmsd = &s32g2_pit_vmstate;
+    dc->reset = s32g2_pit_reset;
+    dc->vmsd = &s32g2_pit_vmstate;
 }
 
 static const TypeInfo s32g2_pit_info = {
-	.name          = TYPE_S32G2_PIT,
-	.parent        = TYPE_SYS_BUS_DEVICE,
-	.instance_init = s32g2_pit_init,
-	.instance_size = sizeof(S32G2pitState),
-	.class_init    = s32g2_pit_class_init,
+    .name          = TYPE_S32G2_PIT,
+    .parent        = TYPE_SYS_BUS_DEVICE,
+    .instance_init = s32g2_pit_init,
+    .instance_size = sizeof(S32G2pitState),
+    .class_init    = s32g2_pit_class_init,
 };
 
 static void s32g2_pit_register(void)
 {
-	type_register_static(&s32g2_pit_info);
+    type_register_static(&s32g2_pit_info);
 }
 
 type_init(s32g2_pit_register)
