@@ -215,7 +215,7 @@ static void s32g2_mc_cgm2_init(Object *obj)
 
     /* Memory mapping */
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_cgm2_ops, s,
-                           TYPE_S32G2_MC_CGM2, 0x400);
+                           TYPE_S32G2_MC_CGM2, 0x600);
     sysbus_init_mmio(sbd, &s->iomem);
 }
 

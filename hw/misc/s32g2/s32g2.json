@@ -204,7 +204,7 @@
 			"name": "rtc",
 			"offset" : "0x40060000",
 			"description": "Real Time Clock Module",
-			"helpers": "static int supervisor_mode=1;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\n /*S32G2rtcState *s = S32G2_MC_ME(opaque);*/ }",
+			"helpers": "static int supervisor_mode=1;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){}",
 			"registers": {
 				"RTCSUPV" : {
 					"offset": "0x0",
@@ -388,6 +388,27 @@
 			},
 			"size":"0x200"
 		},
+		"SRC":{
+			"soc": "s32g2",
+			"name": "src",
+			"offset" : "0x4007C000",
+			"description": "System Resource Controller",
+			"helpers": "",
+			"registers": {
+				"CMU_STAT0" : {
+					"offset": "0x28",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_CMU_STAT0, 0);"
+				},
+				"CMU_STAT1" : {
+					"offset": "0x2C",
+					"reset": "0x0",
+					"action": "PERFORM_WRITE(REG_CMU_STAT1, 0);"
+				}
+				
+			},
+			"size":"0x1000"
+		},
 		"RDC":{
 			"soc": "s32g2",
 			"name": "rdc",
@@ -531,7 +552,8 @@
 				}
 
 			},
-			"size":"0x5000"
+			"size":"0x5000",
+			"min_access":1
 		},
 		"QSPI":{
 			"soc": "s32g2",
@@ -901,7 +923,8 @@
 				}
 
 			},
-			"size":"0x2000"
+			"size":"0x2000",
+			"min_access":1
 		},
 		"MC_CGM2":{
 			"soc": "s32g2",
@@ -1009,6 +1032,62 @@
 					"offset": "0x544",
 					"reset": "0x00080000",
 					"action": "ignore"
+				}
+
+			},
+			"size":"0x600"
+		},
+		"ADC":{
+			"soc": "s32g2",
+			"name": "adc",
+			"offset" : "0x401F8000",
+			"description": "Analogue to Digital Converter",
+			"helpers": "",
+			"registers": {
+				"ISR" : {
+					"offset": "0x10",
+					"reset": "0x1F",
+					"action":"ignore"
+				},
+				"PCDR0" : {
+					"offset": "0x100",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR1" : {
+					"offset": "0x104",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR2" : {
+					"offset": "0x108",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR3" : {
+					"offset": "0x10C",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR4" : {
+					"offset": "0x110",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR5" : {
+					"offset": "0x114",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR6" : {
+					"offset": "0x118",
+					"reset": "0x00080084",
+					"action":"ignore"
+				},
+				"PCDR7" : {
+					"offset": "0x11C",
+					"reset": "0x00080084",
+					"action":"ignore"
 				}
 
 			},

@@ -95,7 +95,15 @@ static void s32g2_pit_timer_cb(void *opaque)
     S32G2TimerContext *tc = opaque;
     S32G2pitState *s = S32G2_PIT(tc->state);
     int i = tc->index;
+    static int level=0;
 
+    if(level==0){
+	    level=1;
+    }
+    else{
+	    level=0;
+    }
+    qemu_set_irq(s->irq[0], level);
     if(debug)printf("Timer %d callback!\n", i); 
     if ((i >= 0) && (i < PIT_MAX_TIMERS)){
 	    process_expired_timer(i, s);

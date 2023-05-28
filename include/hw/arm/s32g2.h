@@ -38,6 +38,7 @@
 //#include "hw/i2c/allwinner-i2c.h"
 #include "target/arm/cpu.h"
 #include "sysemu/block-backend.h"
+#include "hw/misc/s32g2/adc.h"
 #include "hw/misc/s32g2/sramc.h"
 #include "hw/misc/s32g2/mc_me.h"
 #include "hw/misc/s32g2/mc_cgm.h"
@@ -47,6 +48,7 @@
 #include "hw/misc/s32g2/mc_rgm.h"
 #include "hw/misc/s32g2/rdc.h"
 #include "hw/misc/s32g2/hsemu.h"
+#include "hw/misc/s32g2/src.h"
 #include "hw/misc/s32g2/rtc.h"
 #include "hw/misc/s32g2/linFlex-module.h"
 #include "hw/misc/s32g2/ddrss.h"
@@ -112,6 +114,8 @@ enum {
     S32G2_DEV_GIC_CPU,
     S32G2_DEV_GIC_HYP,
     S32G2_DEV_GIC_VCPU,
+    S32G2_DEV_ADC0,
+    S32G2_DEV_ADC1,
     S32G2_DEV_PIT,
     S32G2_DEV_SRAM,
     S32G2_DEV_SSRAM,
@@ -145,7 +149,9 @@ enum {
     S32G2_DEV_PLL,
     S32G2_DEV_QSPI_REGS,
     S32G2_DEV_DDR_PLL,
+    S32G2_DEV_ACC_PLL,
     S32G2_DEV_PERIPH_PLL,
+    S32G2_DEV_SRC,
     S32G2_DEV_RDC,
     S32G2_DEV_RTC,
     S32G2_DEV_HSEMU0,
@@ -219,6 +225,8 @@ struct S32G2State {
     S32G2SramcState sram_ctrl_c1;
     S32G2SramcState sram_ctrl_stdby;
 
+    S32G2adcState adc0;
+    S32G2adcState adc1;
     S32G2mc_meState mc_me;
     S32G2mc_cgmState mc_cgm;
     S32G2mc_cgm1State mc_cgm1;
@@ -235,7 +243,9 @@ struct S32G2State {
     S32G2pllState pll;
     S32G2qspiState qspi;
     S32G2pllState ddr_pll;
+    S32G2pllState acc_pll;
     S32G2pllState periph_pll;
+    S32G2srcState src;
     S32G2rdcState rdc;
     S32G2rtcState rtc;
     S32G2linFlexState linflex0;

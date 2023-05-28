@@ -90,10 +90,10 @@ static const MemoryRegionOps s32g2_siul2_1_ops = {
     .write = s32g2_siul2_1_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
     .valid = {
-        .min_access_size = 4,
+        .min_access_size = 1,
         .max_access_size = 4,
     },
-    .impl.min_access_size = 4,
+    .impl.min_access_size = 1,
 };
 
 static void s32g2_siul2_1_reset(DeviceState *dev)

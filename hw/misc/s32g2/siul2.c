@@ -90,10 +90,10 @@ static const MemoryRegionOps s32g2_siul2_ops = {
     .write = s32g2_siul2_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
     .valid = {
-        .min_access_size = 4,
+        .min_access_size = 1,
         .max_access_size = 4,
     },
-    .impl.min_access_size = 4,
+    .impl.min_access_size = 1,
 };
 
 static void s32g2_siul2_reset(DeviceState *dev)
@@ -113,7 +113,7 @@ static void s32g2_siul2_init(Object *obj)
 
     /* Memory mapping */
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_siul2_ops, s,
-                           TYPE_S32G2_SIUL2, 0x2000);
+                           TYPE_S32G2_SIUL2, 0x5000);
     sysbus_init_mmio(sbd, &s->iomem);
 }
 

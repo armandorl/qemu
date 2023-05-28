@@ -27,7 +27,7 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/mc_me.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_PRTN2_PUPD=	0x504,

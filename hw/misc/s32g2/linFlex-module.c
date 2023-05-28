@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/sysbus.h"
+#include "hw/irq.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/timer.h"
@@ -58,6 +59,7 @@ enum {
 #define LINFLEX_UARTSR_DTFTFF   BIT(1)
 #define LINFLEX_UARTSR_DRFRFE   BIT(2)
 
+#define LINFLEX_UART_FIFO_TFC   (1 << 13)
 enum {
 	LINMODE_SLEEP=0,
 	LINMODE_INIT,
@@ -83,16 +85,22 @@ static void serial_receive1(void *opaque, const uint8_t *buf, int size)
     int i;
     for (i = 0; i < size; i++) {
 /*	    recv_fifo_put(s, buf[i]);*/
-/*	    printf("%c", buf[i]); */
-            if(rx_enable)
+            if(debug)printf("%c", buf[i]);
+	    if(rx_enable)
 	    {
 		PERFORM_WRITE(REG_BDRM, buf[i]);
 		if(rx_fifo_mode){
+			if(debug)printf("fifo mode\n");
+			PERFORM_WRITE(REG_UARTCR1, (PERFORM_READ(REG_UARTCR1) | LINFLEX_UART_FIFO_TFC));
 			PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~LINFLEX_UARTSR_DRFRFE) );
 		}
 		else {
-			PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE );
+			if(debug)printf("buffer mode\n");
+			PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE | BIT(9) );
 		}
+            	if(debug)printf("Trigger LinFlex IRQ\n");
+		qemu_set_irq(s->irq[0], 0); 
+		qemu_set_irq(s->irq[0], 1);
 	    }
     }
 }
@@ -145,12 +153,12 @@ static void linflex_process_lincr1(S32G2linFlexState *s, unsigned int val){
 }
 
 static void linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val){
+	tx_enable=!!(val&LINFLEX_UARTCR1_TXEN);
+	rx_enable=!!(val&LINFLEX_UARTCR1_RXEN);
 	if(linmode==LINMODE_INIT){ 
 		uart_mode=!!(val&LINFLEX_UARTCR1_UART);
 		tx_fifo_mode=!!(val&LINFLEX_UARTCR1_TXFIFO);
 		rx_fifo_mode=!!(val&LINFLEX_UARTCR1_RXFIFO);
-		tx_enable=!!(val&LINFLEX_UARTCR1_TXEN);
-		rx_enable=!!(val&LINFLEX_UARTCR1_RXEN);
 
 		if(tx_fifo_mode){PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE) & ~(LINFLEX_UARTSR_DTFTFF)  );
 		}
@@ -159,10 +167,6 @@ static void linflex_process_uartcr1(S32G2linFlexState *s, unsigned int val){
 		}
 		if(debug) printf("Set UART uart:%d txfifo:%d rxfifo:%d txen:%d rxen:%d\n\n",
 				uart_mode, tx_fifo_mode, rx_fifo_mode, tx_enable, rx_enable);
-	}
-	else
-	{
-		if(debug) printf("Configure not on INIT!!!!\n");
 	}
 }
 
@@ -186,9 +190,11 @@ static uint64_t s32g2_linFlex_read(void *opaque, hwaddr offset,
 
 			if(rx_fifo_mode){
 				PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DRFRFE) );
+				PERFORM_WRITE(REG_UARTCR1, (PERFORM_READ(REG_UARTCR1) & ~LINFLEX_UART_FIFO_TFC));
 			}
 			else {
 				PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) & ~LINFLEX_UARTSR_DRFRFE );
+				PERFORM_WRITE(REG_UARTSR, PERFORM_READ(REG_UARTSR) & ~BIT(9) );
 			}
 			return retVal;
 		default:
@@ -219,23 +225,29 @@ static void s32g2_linFlex_write(void *opaque, hwaddr offset,
 			;			break;
 		case REG_BDRL:
 			PERFORM_WRITE(REG_BDRL, val);
-			if(tx_fifo_mode) {PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~(LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF)));} else {PERFORM_WRITE(REG_UARTSR, ((PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DTFTFF) & ~LINFLEX_UARTSR_DRFRFE)); }
-			if(debug)printf("%c", (int)val);
+			if(tx_fifo_mode) {
+				PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~(LINFLEX_UARTSR_DRFRFE | LINFLEX_UARTSR_DTFTFF)));
+			} else {
+				PERFORM_WRITE(REG_UARTSR, ((PERFORM_READ(REG_UARTSR) | LINFLEX_UARTSR_DTFTFF) & ~LINFLEX_UARTSR_DRFRFE)); 
+			}
+			/* if(debug)printf("%c", (int)val); */
 			qemu_chr_fe_write(&s->chr, (const uint8_t*)&val, 1);
 			return; /* TODO: How to use qemu serial output? */
 		case REG_UARTCR1:
 			PERFORM_WRITE(REG_UARTCR1, val);
 			linflex_process_uartcr1(s, val);
 			;			break;
+		case REG_UARTSR:
+			PERFORM_WRITE(REG_UARTSR, (PERFORM_READ(REG_UARTSR) & ~val));
+			break;
 		case REG_LINSR:
-			return;
+			break;
 
 		default:
-			/* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
 			s->regs[idx] = (uint32_t) val;
-			return;
+			break;
 	}
-	/* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
+	if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_linFlex_ops = {
@@ -286,6 +298,7 @@ static void s32g2_linFlex_init(Object *obj)
 	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_linFlex_ops, s,
 			TYPE_S32G2_LINFLEX, 0x100);
 	sysbus_init_mmio(sbd, &s->iomem);
+        sysbus_init_irq(sbd, &s->irq[0]);
 }
 
 static const VMStateDescription s32g2_linFlex_vmstate = {

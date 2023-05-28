@@ -30,7 +30,7 @@
  */
 
 /** Highest register address used by MC_CGM2 device */
-#define S32G2_MC_CGM2_REGS_MAXADDR   (0x400)
+#define S32G2_MC_CGM2_REGS_MAXADDR   (0x600)
 
 /** Total number of known registers */
 #define S32G2_MC_CGM2_REGS_NUM       ((S32G2_MC_CGM2_REGS_MAXADDR / \

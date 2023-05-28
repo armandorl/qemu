@@ -61,6 +61,7 @@ struct S32G2linFlexState {
     CharBackend chr;
     /** Maps I/O registers in physical memory */
     MemoryRegion iomem;
+    qemu_irq irq[1];
 
     /** Array of hardware registers */
     uint32_t regs[S32G2_LINFLEX_REGS_NUM];
