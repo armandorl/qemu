@@ -213,6 +213,7 @@ struct S32G2Unimplemented {
     { "DMAMUX1",   0x40130000, 12 * KiB },
     { "EDMA0",     0x40144000, 12 * KiB },
     { "EDMA0CHAN", 0x40148000, 128 * KiB },
+    { "SPI1",      0x401D8000, 12 * KiB },
     { "PWM0",      0x401F4000, 12 * KiB },
     { "ADC_0",     0x401F8000,  4 * KiB },
     { "PWM1",      0x402E4000, 12 * KiB },
@@ -243,12 +244,13 @@ struct S32G2Unimplemented {
 
 /* Per Processor Interrupts */
 enum {
-    S32G2_GIC_PPI_MAINT     = 41 - GIC_INTERNAL,
-    S32G2_GIC_PPI_HYPTIMER  = 42 - GIC_INTERNAL,
-    S32G2_GIC_PPI_VIRTTIMER = 43 - GIC_INTERNAL,
-    S32G2_GIC_PPI_EL2_VIRTTIMER  = 44 - GIC_INTERNAL,
-    S32G2_GIC_PPI_EL3_VIRTTIMER = 45 - GIC_INTERNAL,
-    S32G2_GIC_PPI_PHYSTIMER = 46 - GIC_INTERNAL
+    S32G2_GIC_PPI_PMU       = 23,
+    S32G2_GIC_PPI_MAINT     = 25,
+    S32G2_GIC_PPI_HYPTIMER  = 26,
+    S32G2_GIC_PPI_VIRTTIMER = 27,
+    S32G2_GIC_PPI_EL2_VIRTTIMER  = 28,
+    S32G2_GIC_PPI_EL3_VIRTTIMER = 29,
+    S32G2_GIC_PPI_PHYSTIMER = 30
 };
 
 /* Shared Processor Interrupts */
@@ -256,7 +258,7 @@ enum {
     S32G2_GIC_SPI_UART0     =  114 - GIC_INTERNAL,
     S32G2_GIC_SPI_UART1     =  115 - GIC_INTERNAL,
     S32G2_GIC_SPI_UART2     =  116 - GIC_INTERNAL,
-#if 0
+#if 1
     S32G2_GIC_SPI_TIMER0    = 101 - GIC_INTERNAL,
     S32G2_GIC_SPI_TIMER1    = 102 - GIC_INTERNAL,
 #else
@@ -546,7 +548,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
      */
     for (i = 0; i < S32G2_NUM_CPUS; i++) {
         DeviceState *cpudev = DEVICE(&s->cpus[i]);
-	int ppibase = S32G2_GIC_NUM_SPI + i * GIC_INTERNAL + GIC_NR_SGIS;
+	int ppibase = S32G2_GIC_NUM_SPI + (i * GIC_INTERNAL);
         int irq;
         /*
          * Mapping from the output timer irq lines from the CPU to the
@@ -556,6 +558,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
             [GTIMER_PHYS] = S32G2_GIC_PPI_PHYSTIMER,
             [GTIMER_VIRT] = S32G2_GIC_PPI_VIRTTIMER,
             [GTIMER_HYP]  = S32G2_GIC_PPI_HYPTIMER,
+            [GTIMER_SEC]  = S32G2_GIC_PPI_EL3_VIRTTIMER,
             [GTIMER_HYPVIRT]  = S32G2_GIC_PPI_EL2_VIRTTIMER
         };
 
@@ -584,7 +587,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                                     0, maint_irq);
 
         qdev_connect_gpio_out_named(cpudev, "pmu-interrupt",
-                                    0, qdev_get_gpio_in(DEVICE(&s->gic), ppibase + (39 - GIC_INTERNAL)));
+                                    0, qdev_get_gpio_in(DEVICE(&s->gic), ppibase + S32G2_GIC_PPI_PMU));
     }
     /* Timer */
     sysbus_realize(SYS_BUS_DEVICE(&s->timer), &error_fatal);

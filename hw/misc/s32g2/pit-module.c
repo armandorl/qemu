@@ -95,20 +95,14 @@ static void s32g2_pit_timer_cb(void *opaque)
     S32G2TimerContext *tc = opaque;
     S32G2pitState *s = S32G2_PIT(tc->state);
     int i = tc->index;
-    static int level=0;
 
-    if(level==0){
-	    level=1;
-    }
-    else{
-	    level=0;
-    }
-    qemu_set_irq(s->irq[0], level);
     if(debug)printf("Timer %d callback!\n", i); 
     if ((i >= 0) && (i < PIT_MAX_TIMERS)){
 	    process_expired_timer(i, s);
 	    if( s->timer_enabled[i] && s->timer_int_enabled[i]) {
-		    qemu_set_irq(s->irq[0], 1);
+    		if(debug)printf("Generater interrupt for timer %d\n", i); 
+    	        qemu_set_irq(s->irq[0], 0);
+		qemu_set_irq(s->irq[0], 1);
 	    }
     }
 }
@@ -143,7 +137,7 @@ static void update_timers(S32G2pitState *s)
 				limit--;
 				if(debug)printf("Set timer %d limit %lx\n", i, limit);
 				ptimer_transaction_begin(s->timer[i]);
-				ptimer_set_limit(s->timer[i], 5000000, 0);
+				ptimer_set_limit(s->timer[i], limit/100000, 0);
 				ptimer_transaction_commit(s->timer[i]);
 
 				ptimer_transaction_begin(s->timer[i]);
@@ -405,10 +399,10 @@ static void s32g2_pit_reset(DeviceState *dev)
 }
 
 static Property s32g2_pit_properties[] = {
-    DEFINE_PROP_UINT32("clk0-freq", S32G2pitState, clk_freq[0], 10000),
-    DEFINE_PROP_UINT32("clk1-freq", S32G2pitState, clk_freq[1], 0),
-    DEFINE_PROP_UINT32("clk2-freq", S32G2pitState, clk_freq[2], 0),
-    DEFINE_PROP_UINT32("clk3-freq", S32G2pitState, clk_freq[3], 0),
+    DEFINE_PROP_UINT32("clk0-freq", S32G2pitState, clk_freq[0], 40000000),
+    DEFINE_PROP_UINT32("clk1-freq", S32G2pitState, clk_freq[1], 40000000),
+    DEFINE_PROP_UINT32("clk2-freq", S32G2pitState, clk_freq[2], 40000000),
+    DEFINE_PROP_UINT32("clk3-freq", S32G2pitState, clk_freq[3], 40000000),
     DEFINE_PROP_END_OF_LIST(),
 };
 
