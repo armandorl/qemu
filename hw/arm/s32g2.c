@@ -213,7 +213,9 @@ struct S32G2Unimplemented {
     { "DMAMUX1",   0x40130000, 12 * KiB },
     { "EDMA0",     0x40144000, 12 * KiB },
     { "EDMA0CHAN", 0x40148000, 128 * KiB },
+#if 0
     { "SPI1",      0x401D8000, 12 * KiB },
+#endif
     { "PWM0",      0x401F4000, 12 * KiB },
     { "ADC_0",     0x401F8000,  4 * KiB },
     { "PWM1",      0x402E4000, 12 * KiB },
@@ -459,6 +461,12 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "siul2_1", &s->siul2_1, TYPE_S32G2_SIUL2_1);
     object_initialize_child(obj, "pll", &s->pll, TYPE_S32G2_PLL);
     object_initialize_child(obj, "qspi", &s->qspi, TYPE_S32G2_QSPI);
+    object_initialize_child(obj, "spi0", &s->spi0, TYPE_S32G2_SPI);
+    object_initialize_child(obj, "spi1", &s->spi1, TYPE_S32G2_SPI);
+    object_initialize_child(obj, "spi2", &s->spi2, TYPE_S32G2_SPI);
+    object_initialize_child(obj, "spi3", &s->spi3, TYPE_S32G2_SPI);
+    object_initialize_child(obj, "spi4", &s->spi4, TYPE_S32G2_SPI);
+    object_initialize_child(obj, "spi5", &s->spi5, TYPE_S32G2_SPI);
     object_initialize_child(obj, "serdes0", &s->serdes0, TYPE_S32G2_SERDES);
     object_initialize_child(obj, "serdes1", &s->serdes1, TYPE_S32G2_SERDES);
     object_initialize_child(obj, "periph_pll", &s->periph_pll, TYPE_S32G2_PLL);
@@ -640,6 +648,24 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->qspi), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->qspi), 0, s->memmap[S32G2_DEV_QSPI_REGS]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->spi0), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi0), 0, s->memmap[S32G2_DEV_SPI0]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->spi1), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi1), 0, s->memmap[S32G2_DEV_SPI1]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->spi2), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi2), 0, s->memmap[S32G2_DEV_SPI2]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->spi3), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi3), 0, s->memmap[S32G2_DEV_SPI3]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->spi4), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi4), 0, s->memmap[S32G2_DEV_SPI4]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->spi5), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi5), 0, s->memmap[S32G2_DEV_SPI5]);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->serdes0), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->serdes0), 0, s->memmap[S32G2_DEV_SERDES0]);

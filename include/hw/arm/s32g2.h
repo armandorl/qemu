@@ -58,6 +58,7 @@
 #include "hw/misc/s32g2/pit-module.h"
 #include "hw/misc/s32g2/pll.h"
 #include "hw/misc/s32g2/qspi.h"
+#include "hw/misc/s32g2/spi.h"
 #include "hw/misc/s32g2/dfs.h"
 #include "hw/misc/s32g2/siul2.h"
 #include "hw/misc/s32g2/siul2_1.h"
@@ -130,6 +131,9 @@ enum {
     S32G2_DEV_SPI0,
     S32G2_DEV_SPI1,
     S32G2_DEV_SPI2,
+    S32G2_DEV_SPI3,
+    S32G2_DEV_SPI4,
+    S32G2_DEV_SPI5,
     S32G2_DEV_QSPI,
     S32G2_DEV_QSPI_BUFFER,
     S32G2_DEV_I2C0,
@@ -246,6 +250,12 @@ struct S32G2State {
     S32G2pllState acc_pll;
     S32G2pllState periph_pll;
     S32G2srcState src;
+    S32G2spiState spi0;
+    S32G2spiState spi1;
+    S32G2spiState spi2;
+    S32G2spiState spi3;
+    S32G2spiState spi4;
+    S32G2spiState spi5;
     S32G2rdcState rdc;
     S32G2rtcState rtc;
     S32G2linFlexState linflex0;

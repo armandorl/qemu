@@ -727,6 +727,28 @@
 			},
 			"size":"0x200"
 		},
+		"SPI":{
+			"soc": "s32g2",
+			"name": "spi",
+			"offset" : "0x401D8000",
+			"description": "SPI Module",
+			"helpers": "",
+			"registers": {
+				"SR" : {
+					"offset": "0x2C",
+					"reset": "0x02010000",
+					"action":"PERFORM_WRITE(REG_SR, PERFORM_READ(REG_SR) & ~val);"
+				},
+				"MCR" : {
+					"offset": "0x0",
+					"reset": "0x00004001",
+					"action":"if((val&0x1)==0)PERFORM_WRITE(REG_SR, PERFORM_READ(REG_SR) | BIT(30));"
+				}
+
+			},
+			"size":"0x200",
+			"min_access":1
+		},
 		"HSEMU":{
 			"soc": "s32g2",
 			"name": "hsemu",
