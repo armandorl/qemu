@@ -213,6 +213,10 @@ struct S32G2Unimplemented {
     { "DMAMUX1",   0x40130000, 12 * KiB },
     { "EDMA0",     0x40144000, 12 * KiB },
     { "EDMA0CHAN", 0x40148000, 128 * KiB },
+    { "CAN0",      0x401B4000, 40 * KiB },
+    { "CAN1",      0x401BE000, 40 * KiB },
+    { "CAN2",      0x402A8000, 40 * KiB },
+    { "CAN3",      0x402B2000, 40 * KiB },
 #if 0
     { "SPI1",      0x401D8000, 12 * KiB },
 #endif
@@ -240,7 +244,8 @@ struct S32G2Unimplemented {
     { "DDRSS1",    0x40390000, 0x20000 },
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 },
-    { "SERDES0",   0x40400000, 1 * MiB }
+    { "SERDES0",   0x40400000, 1 * MiB },
+    { "LLCE",      0x43000000, 16 * MiB }
 
 };
 
