@@ -1,0 +1,11 @@
+config SPI
+    bool
+
+config SPI_DEVICES
+    # Device group for spi devices which can reasonably be user-plugged
+    # to any board's spi bus
+    bool
+
+config ATWILC
+    bool
+    select SPI

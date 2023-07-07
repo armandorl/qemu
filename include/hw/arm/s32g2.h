@@ -58,7 +58,7 @@
 #include "hw/misc/s32g2/pit-module.h"
 #include "hw/misc/s32g2/pll.h"
 #include "hw/misc/s32g2/qspi.h"
-#include "hw/misc/s32g2/spi.h"
+#include "hw/misc/s32g2/spi-module.h"
 #include "hw/misc/s32g2/dfs.h"
 #include "hw/misc/s32g2/siul2.h"
 #include "hw/misc/s32g2/siul2_1.h"

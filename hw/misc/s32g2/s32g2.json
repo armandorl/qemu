@@ -931,7 +931,7 @@
 			"name": "siul2_1",
 			"offset" : "0x44010000",
 			"description": "System Integration Unit Lite2 1",
-			"helpers": "",
+			"helpers": "void set_siul2_external_irq(int i) { PERFORM_WRITE(REG_DISR0, PERFORM_READ(REG_DISR0) | BIT(i));   }",
 			"registers": {
 				"MIDR1" : {
 					"offset": "0x4",
@@ -942,6 +942,11 @@
 					"offset": "0x8",
 					"reset": "0x0112c000",
 					"action":"ignore"
+				},
+				"DISR0" : {
+					"offset": "0x10",
+					"reset": "0x0",
+					"action":"PERFORM_WRITE(REG_DISR0, PERFORM_READ(REG_DISR0) & ~val);"
 				}
 
 			},

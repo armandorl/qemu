@@ -30,6 +30,7 @@
 #include "hw/loader.h"
 #include "sysemu/sysemu.h"
 #include "hw/arm/s32g2.h"
+#include "hw/spi/spi.h"
 
 /* Memory map */
 const hwaddr s32g2_memmap[] = {
@@ -265,6 +266,8 @@ enum {
     S32G2_GIC_SPI_UART0     =  114 - GIC_INTERNAL,
     S32G2_GIC_SPI_UART1     =  115 - GIC_INTERNAL,
     S32G2_GIC_SPI_UART2     =  116 - GIC_INTERNAL,
+    S32G2_GIC_SPI_SPI0      =  117 - GIC_INTERNAL,
+    S32G2_GIC_SPI_SPI1      =  118 - GIC_INTERNAL,
 #if 1
     S32G2_GIC_SPI_TIMER0    = 101 - GIC_INTERNAL,
     S32G2_GIC_SPI_TIMER1    = 102 - GIC_INTERNAL,
@@ -272,6 +275,7 @@ enum {
     S32G2_GIC_SPI_TIMER0    = 85 - GIC_INTERNAL,
     S32G2_GIC_SPI_TIMER1    = 86 - GIC_INTERNAL,
 #endif
+    S32G2_GIC_SIUL2_1       = 242 - GIC_INTERNAL,
     S32G2_GIC_SPI_MMC0      = 246 - GIC_INTERNAL
 };
 
@@ -659,6 +663,8 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->spi1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi1), 0, s->memmap[S32G2_DEV_SPI1]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->spi1), 0,
+                       qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_SPI1));
 
     sysbus_realize(SYS_BUS_DEVICE(&s->spi2), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi2), 0, s->memmap[S32G2_DEV_SPI2]);

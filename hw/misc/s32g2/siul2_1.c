@@ -27,9 +27,10 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/siul2_1.h"
 
-static int debug=0;
+static int debug=1;
 
 enum {
+	REG_DISR0=	0x10,
 	REG_MIDR1=	0x4,
 	REG_MIDR2=	0x8,
 };
@@ -39,7 +40,15 @@ enum {
 #define PERFORM_READ(reg)         s->regs[REG_INDEX(reg)] 
 #define PERFORM_WRITE(reg, val)   s->regs[REG_INDEX(reg)] = val
 
+/* For now assume there is only one instance, else this does not work */
+static S32G2siul2_1State* mState;
 
+extern void set_siul2_external_irq(int i);
+
+void set_siul2_external_irq(int i) { 
+	S32G2siul2_1State *s = mState;
+	PERFORM_WRITE(REG_DISR0, PERFORM_READ(REG_DISR0) | BIT(i));   
+}
 
 static uint64_t s32g2_siul2_1_read(void *opaque, hwaddr offset,
                                           unsigned size)
@@ -54,7 +63,7 @@ static uint64_t s32g2_siul2_1_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
     return retVal;
 }
 
@@ -72,17 +81,21 @@ static void s32g2_siul2_1_write(void *opaque, hwaddr offset,
 
     switch (offset) {
     
+		case REG_DISR0:
+PERFORM_WRITE(REG_DISR0, val);
+			PERFORM_WRITE(REG_DISR0, PERFORM_READ(REG_DISR0) & ~val);
+;			break;
 		case REG_MIDR1:
 			return;
 		case REG_MIDR2:
 			return;
 
     default:
-        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_siul2_1_ops = {
@@ -101,7 +114,8 @@ static void s32g2_siul2_1_reset(DeviceState *dev)
     S32G2siul2_1State *s = S32G2_SIUL2_1(dev); 
 
     /* Set default values for registers */
-    	PERFORM_WRITE(REG_MIDR1,0x4c200412);
+    	PERFORM_WRITE(REG_DISR0,0x0);
+	PERFORM_WRITE(REG_MIDR1,0x4c200412);
 	PERFORM_WRITE(REG_MIDR2,0x0112c000);
 
 }
@@ -110,6 +124,7 @@ static void s32g2_siul2_1_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     S32G2siul2_1State *s = S32G2_SIUL2_1(obj);
+    mState = s;
 
     /* Memory mapping */
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_siul2_1_ops, s,

@@ -62,7 +62,7 @@ static uint64_t s32g2_mc_rgm_read(void *opaque, hwaddr offset,
     }
 
     uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, retVal); 
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
     return retVal;
 }
 
@@ -106,11 +106,11 @@ PERFORM_WRITE(REG_PRST1, val);
 ;			break;
 
     default:
-        printf("%s default action for write offset=%lx val=%lx\n", __func__, offset, val);
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
         s->regs[idx] = (uint32_t) val;
         return;
     }
-    if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_mc_rgm_ops = {

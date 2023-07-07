@@ -347,6 +347,7 @@ config ALLWINNER_H3
 config S32G2
     bool
     select SERIAL
+    select SPI
     select ARM_TIMER
     select ARM_GIC
     select UNIMP

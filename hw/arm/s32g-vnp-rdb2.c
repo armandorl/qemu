@@ -1,7 +1,7 @@
 /*
- * Orange Pi emulation
+ * S32G274 emulation
  *
- * Copyright (C) 2019 Niek Linnenbank <nieklinnenbank@gmail.com>
+ * Copyright (C) 2023 Jose Armando Ruiz <armandorl@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,10 +26,11 @@
 #include "hw/qdev-properties.h"
 #include "hw/arm/s32g2.h"
 #include "hw/sd/sd.h"
+#include "hw/spi/spi.h"
 
-static struct arm_boot_info zeusflasher_binfo;
+static struct arm_boot_info s32g_vnp_rdb2_binfo;
 
-static void zeusflasher_init(MachineState *machine)
+static void s32g_vnp_rdb2_init(MachineState *machine)
 {
     S32G2State *s32g2_st;
     DriveInfo *di;
@@ -98,23 +99,23 @@ static void zeusflasher_init(MachineState *machine)
         /* Use Boot ROM to copy data from SD card to SRAM */
         s32g2_bootrom_setup(s32g2_st, blk, &entry);
     }
-    zeusflasher_binfo.loader_start = entry;
-    zeusflasher_binfo.ram_size = machine->ram_size;
-    zeusflasher_binfo.psci_conduit = QEMU_PSCI_CONDUIT_SMC;
-    zeusflasher_binfo.firmware_loaded = 1;
-    zeusflasher_binfo.entry = entry;
-    arm_load_kernel(ARM_CPU(first_cpu), machine, &zeusflasher_binfo);
+    s32g_vnp_rdb2_binfo.loader_start = entry;
+    s32g_vnp_rdb2_binfo.ram_size = machine->ram_size;
+    s32g_vnp_rdb2_binfo.psci_conduit = QEMU_PSCI_CONDUIT_SMC;
+    s32g_vnp_rdb2_binfo.firmware_loaded = 1;
+    s32g_vnp_rdb2_binfo.entry = entry;
+    arm_load_kernel(ARM_CPU(first_cpu), machine, &s32g_vnp_rdb2_binfo);
     
     CPUState *cs = first_cpu;
     for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
-        ARM_CPU(cs)->env.boot_info = &zeusflasher_binfo;
+        ARM_CPU(cs)->env.boot_info = &s32g_vnp_rdb2_binfo;
     }
 }
 
-static void zeusflasher_machine_init(MachineClass *mc)
+static void s32g_vnp_rdb2_machine_init(MachineClass *mc)
 {
-    mc->desc = "Zeus Flasher S32G2 (Cortex-A53 / Cortex-M7)";
-    mc->init = zeusflasher_init;
+    mc->desc = "S32G2-VNP-RDB2 (Cortex-A53 / Cortex-M7)";
+    mc->init = s32g_vnp_rdb2_init;
     mc->block_default_type = IF_SD;
     mc->units_per_default_bus = 1;
     mc->min_cpus = S32G2_NUM_CPUS;
@@ -122,7 +123,7 @@ static void zeusflasher_machine_init(MachineClass *mc)
     mc->default_cpus = S32G2_NUM_CPUS;
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-a53");
     mc->default_ram_size = 2 * GiB;
-    mc->default_ram_id = "zeus-flasher.ram";
+    mc->default_ram_id = "s32g_vnp_rdb2.ram";
 }
 
-DEFINE_MACHINE("zeus-flasher", zeusflasher_machine_init)
+DEFINE_MACHINE("s32g_vnp_rdb2", s32g_vnp_rdb2_machine_init)
