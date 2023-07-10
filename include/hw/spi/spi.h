@@ -18,6 +18,8 @@ typedef struct SPINodeList SPINodeList;
 OBJECT_DECLARE_TYPE(SPISlave, SPISlaveClass,
                     SPI_SLAVE)
 
+#define INTERFACE_CONVENTIONAL_SPI_DEVICE "conventional-spi-device"
+
 struct SPISlaveClass {
     DeviceClass parent_class;
 

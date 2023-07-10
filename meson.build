@@ -3007,6 +3007,7 @@ if have_system
     'hw/sh4',
     'hw/sparc',
     'hw/sparc64',
+    'hw/spi',
     'hw/ssi',
     'hw/timer',
     'hw/tpm',

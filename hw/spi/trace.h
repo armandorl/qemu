@@ -1,1 +1,1 @@
-#include "trace/trace-hw_i2c.h"
+#include "trace/trace-hw_spi.h"

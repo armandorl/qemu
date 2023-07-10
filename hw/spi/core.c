@@ -23,6 +23,11 @@ static Property spi_props[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
+static const TypeInfo conventional_spi_interface_info = {
+    .name          = INTERFACE_CONVENTIONAL_SPI_DEVICE,
+    .parent        = TYPE_INTERFACE,
+};
+
 static const TypeInfo spi_bus_info = {
     .name = TYPE_SPI_BUS,
     .parent = TYPE_BUS,
@@ -425,6 +430,7 @@ static void spi_slave_register_types(void)
 {
     type_register_static(&spi_bus_info);
     type_register_static(&spi_slave_type_info);
+    type_register_static(&conventional_spi_interface_info);
 }
 
 type_init(spi_slave_register_types)
