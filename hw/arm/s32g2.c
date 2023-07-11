@@ -661,6 +661,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->spi0), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi0), 0, s->memmap[S32G2_DEV_SPI0]);
 
+    object_property_add_alias(OBJECT(s), "spi-bus", OBJECT(&s->spi0),
+                              "spi-bus");
+
     sysbus_realize(SYS_BUS_DEVICE(&s->spi1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi1), 0, s->memmap[S32G2_DEV_SPI1]);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->spi1), 0,

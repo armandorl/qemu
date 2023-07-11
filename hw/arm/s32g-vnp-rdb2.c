@@ -27,12 +27,14 @@
 #include "hw/arm/s32g2.h"
 #include "hw/sd/sd.h"
 #include "hw/spi/spi.h"
+#include "hw/net/atwilc.h"
 
 static struct arm_boot_info s32g_vnp_rdb2_binfo;
 
 static void s32g_vnp_rdb2_init(MachineState *machine)
 {
     S32G2State *s32g2_st;
+    ATWILC1000State *atwilc;
     DriveInfo *di;
     BlockBackend *blk;
     BusState *bus;
@@ -55,6 +57,9 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
     object_property_add_child(OBJECT(machine), "soc", OBJECT(s32g2_st));
     object_unref(OBJECT(s32g2_st));
 
+    atwilc = ATWILC1000(object_new(TYPE_ATWILC1000));
+    object_property_add_child(OBJECT(machine), "wifi", OBJECT(atwilc));
+    object_unref(OBJECT(atwilc));
 #if 0
     /* Setup timer properties */
     /* Freq comes from XBAR_DIV3_CLK */
@@ -80,8 +85,17 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
                             &error_abort);
 
 #endif
-    /* Mark H3 object realized */
+    /* Mark S32G2 object realized */
     qdev_realize(DEVICE(s32g2_st), NULL, &error_abort);
+
+    /* Mark ATWILC object realized */
+    bus = qdev_get_child_bus(DEVICE(s32g2_st), "spi-bus");
+    qdev_realize(DEVICE(atwilc), bus, &error_abort);
+#if 0
+    uint32_t atwilc_spi_address = 1;
+    object_property_set_uint(OBJECT(atwilc), "address", atwilc_spi_address,
+                             &error_abort);
+#endif
 
     /* Retrieve SD bus */
     di = drive_get(IF_SD, 0, 0);
