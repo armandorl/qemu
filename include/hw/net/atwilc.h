@@ -9,6 +9,8 @@
 //
 #define TYPE_ATWILC1000 "atwilc1000"
 
+typedef struct ATWILC1000Class ATWILC1000Class;
+
 #define ATWILC1000_GET_CLASS(obj) \
         OBJECT_GET_CLASS(ATWILC1000Class, (obj), TYPE_ATWILC1000)
 #define ATWILC1000_CLASS(klass) \
@@ -20,13 +22,6 @@
 void atwilc1000_instance_init(Object *obj);
 void atwilc1000_class_init(ObjectClass *klass, void *data); 
 
-
-#define INTERFACE_CONVENTIONAL_SPI_DEVICE "conventional-spi-device"
-
-typedef struct {
-    SPISlaveClass parent_class;
-} ATWILC1000Class;
-
 typedef struct {
     SPISlave parent;
     QEMUFile *irq_state;
@@ -37,10 +32,16 @@ typedef struct {
     // Add any other required state variables here
 } ATWILC1000State;
 
+struct ATWILC1000Class {
+    SPISlaveClass parent_class;
+}; 
+
+#if 0
 static InterfaceInfo interfaces[] = {
 	{ INTERFACE_CONVENTIONAL_SPI_DEVICE },
 	{ },
 };
+#endif
 
 static const TypeInfo atwilc1000_info = {
     .name = TYPE_ATWILC1000,
@@ -48,7 +49,9 @@ static const TypeInfo atwilc1000_info = {
     .instance_size = sizeof(ATWILC1000State),
     .class_init    = atwilc1000_class_init,
     .instance_init = atwilc1000_instance_init,
+#if 0
     .interfaces = interfaces,
+#endif
 };
 
 #endif /* QEMU_ATWILC1000_H */

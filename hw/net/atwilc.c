@@ -14,7 +14,6 @@
 #include "hw/net/atwilc.h"
 
 
-#if 0
 static void atwilc1000_receive(void *opaque, const uint8_t *data, size_t size);
 static void atwilc1000_transmit(void *opaque, const uint8_t *data, size_t size);
 
@@ -84,12 +83,12 @@ static void atwilc1000_transmit(void *opaque, const uint8_t *data, size_t size) 
     }
 }
 
-#endif
 static void atwilc1000_realize(DeviceState *dev, Error **errp) {
-/*    ATWILC1000State *s = ATWILC1000(dev); */
+#if 0
+    ATWILC1000State *s = ATWILC1000(dev);
+    g_autofree char *name = g_strdup_printf(TYPE_ATWILC1000 ".%d", 0);
 
     /* Initialize the SPI interface */
-#if 0
 /*    s->bus = spi_init_bus(dev, "spi0"); */
     uint32_t address = 1;
     SPISlave *spi = spi_slave_new(TYPE_ATWILC1000, address);
@@ -110,9 +109,13 @@ static Property atwilc1000_properties[] = {
 
 void atwilc1000_class_init(ObjectClass *klass, void *data) {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    SPISlaveClass *atc = SPI_SLAVE_CLASS(klass);
 
     dc->realize = atwilc1000_realize;
     device_class_set_props(dc, atwilc1000_properties);
+
+    atc->send = atwilc1000_send;
+    atc->recv = atwilc1000_recv;
 }
 
 static void atwilc1000_register_types(void) {

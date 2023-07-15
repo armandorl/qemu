@@ -58,9 +58,9 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
     object_unref(OBJECT(s32g2_st));
 
     atwilc = ATWILC1000(object_new(TYPE_ATWILC1000));
+#if 0
     object_property_add_child(OBJECT(machine), "wifi", OBJECT(atwilc));
     object_unref(OBJECT(atwilc));
-#if 0
     /* Setup timer properties */
     /* Freq comes from XBAR_DIV3_CLK */
     object_property_set_int(OBJECT(s32g2_st), "clk0-freq", 32768, &error_abort);
@@ -89,7 +89,7 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
     qdev_realize(DEVICE(s32g2_st), NULL, &error_abort);
 
     /* Mark ATWILC object realized */
-    bus = qdev_get_child_bus(DEVICE(s32g2_st), "spi-bus");
+    bus = qdev_get_child_bus(DEVICE(s32g2_st), "spi-bus.0");
     qdev_realize(DEVICE(atwilc), bus, &error_abort);
 #if 0
     uint32_t atwilc_spi_address = 1;

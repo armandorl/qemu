@@ -32,6 +32,9 @@
 #include "hw/arm/s32g2.h"
 #include "hw/spi/spi.h"
 
+
+
+#define  CORES_PER_CLUSTER  2
 /* Memory map */
 const hwaddr s32g2_memmap[] = {
 #if 0
@@ -532,6 +535,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
         qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el3", true);
         qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el2", true);
 
+	/* Set core affinity */
+        object_property_set_int(OBJECT(&s->cpus[i]), "mp-affinity",
+                                arm_cpu_mp_affinity(i, CORES_PER_CLUSTER) , NULL);
         /* Mark realized */
         qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
     }
@@ -661,7 +667,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->spi0), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi0), 0, s->memmap[S32G2_DEV_SPI0]);
 
-    object_property_add_alias(OBJECT(s), "spi-bus", OBJECT(&s->spi0),
+    object_property_add_alias(OBJECT(s), "spi-bus.0", OBJECT(&s->spi0),
                               "spi-bus");
 
     sysbus_realize(SYS_BUS_DEVICE(&s->spi1), &error_abort);

@@ -66,7 +66,7 @@ struct S32G2spiState {
     uint32_t regs[S32G2_SPI_REGS_NUM];
 
     atwilc_device_t* atwilc_shmem;
-    SPIBus spi_bus;
+    SPIBus *spi_bus;
 };
 
 #endif /* HW_MISC_S32G2_SPI_H */

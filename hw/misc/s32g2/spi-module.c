@@ -148,8 +148,12 @@ static void s32g2_spi_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq[0]);
 /*    sysbus_init_irq(sbd, &s->irq[1]); */
     /*shared_memory_init(path, sizeof(atwilc_device_t), (void**)&s->atwilc_shmem); */
+
+    s->spi_bus = spi_init_bus(DEVICE(s), "spi-bus");
+#if 0
     qbus_init(&s->spi_bus, sizeof(s->spi_bus),
               TYPE_SPI_BUS, DEVICE(s), "spi-bus");
+#endif
 }
 
 static const VMStateDescription s32g2_spi_vmstate = {
