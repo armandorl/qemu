@@ -330,7 +330,7 @@
 			"name": "mc_rgm",
 			"offset" : "0x40078000",
 			"description": "Reset Generation Module",
-			"helpers": "",
+			"helpers": "static QEMUTimer timer1;static uint32_t prev_rst1=0; static uint32_t event=0; static void trigger_hardware_init(void* opaque){S32G2mc_rgmState *s = S32G2_MC_RGM(opaque); uint32_t tmp_event=event; uint32_t tmp = PERFORM_READ(REG_PRST1); PERFORM_WRITE(REG_PSTAT1,  PERFORM_READ(REG_PSTAT1) | (tmp&0x1F)); timer_del(&timer1);timer_deinit(&timer1); CPUState *cs; for (cs = first_cpu; cs; cs = CPU_NEXT(cs)){ if(tmp_event & BIT(1)){ if(tmp & BIT(1)){ qatomic_set(&cs->halted, true);} else { qatomic_set(&cs->halted, false);} tmp=tmp>>1; tmp_event=tmp_event>>1;}}}",
 			"registers": {
 				"DES" : {
 					"offset": "0x0",
@@ -352,7 +352,7 @@
 				"PRST1" : {
 					"offset": "0x48",
 					"reset": "0x0",
-					"action": "PERFORM_WRITE(REG_PSTAT1, val);"
+					"action": "PERFORM_WRITE(REG_PRST1, val&0x1F); event = (val&0x1F)^(prev_rst1); if(event & ((event&val)==0)) { timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);\ntimer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}"
 				},
 				"PRST2" : {
 					"offset": "0x50",
@@ -371,7 +371,7 @@
 				},
 				"PSTAT1" : {
 					"offset": "0x148",
-					"reset": "0x0",
+					"reset": "0x1F",
 					"action": "ignore"
 				},
 				"PSTAT2" : {
@@ -482,6 +482,61 @@
 				"PRTN0_COFB0_STAT": {
 					"offset": "0x110",
 					"reset": "0"
+				},
+				"PRTN1_STAT" : {
+					"offset": "0x308",
+					"reset": "0x1",
+					"action" : "ignore"
+				},
+				"PRTN1_CORE0_STAT" : {
+					"offset": "0x348",
+					"reset": "0x1",
+					"action" : "ignore"
+				},
+				"PRTN1_CORE1_PUPD" : {
+					"offset": "0x364",
+					"reset": "0x0",
+					"action" : "{ uint32_t addr= PERFORM_READ(REG_PRTN1_CORE1_ADDR);\n PERFORM_WRITE(REG_PRTN1_CORE1_STAT, val); CPUState *cpu = qemu_get_cpu(1); cpu_set_pc(cpu, (vaddr)addr); }"
+				},
+				"PRTN1_CORE1_STAT" : {
+					"offset": "0x368",
+					"reset": "0x0",
+					"action" : "ignore"
+				},
+				"PRTN1_CORE1_ADDR" : {
+					"offset": "0x36C",
+					"reset": "0x0",
+					"action" : "PERFORM_WRITE(REG_PRTN1_CORE1_ADDR, val & 0xfffffffe)"
+				},
+				"PRTN1_CORE2_PUPD" : {
+					"offset": "0x384",
+					"reset": "0x0",
+					"action" : "{ uint32_t addr= PERFORM_READ(REG_PRTN1_CORE2_ADDR);\n PERFORM_WRITE(REG_PRTN1_CORE2_STAT, val); CPUState *cpu = qemu_get_cpu(2); cpu_set_pc(cpu, (vaddr)addr); }"
+				},
+				"PRTN1_CORE2_STAT" : {
+					"offset": "0x388",
+					"reset": "0x0",
+					"action" : "ignore"
+				},
+				"PRTN1_CORE2_ADDR" : {
+					"offset": "0x38C",
+					"reset": "0x0",
+					"action" : "PERFORM_WRITE(REG_PRTN1_CORE2_ADDR, val & 0xfffffffe)"
+				},
+				"PRTN1_CORE3_PUPD" : {
+					"offset": "0x3A4",
+					"reset": "0x0",
+					"action" : "{ uint32_t addr= PERFORM_READ(REG_PRTN1_CORE3_ADDR);\n PERFORM_WRITE(REG_PRTN1_CORE3_STAT, val); CPUState *cpu = qemu_get_cpu(3); cpu_set_pc(cpu, (vaddr)addr); }"
+				},
+				"PRTN1_CORE3_STAT" : {
+					"offset": "0x3A8",
+					"reset": "0x0",
+					"action" : "ignore"
+				},
+				"PRTN1_CORE3_ADDR" : {
+					"offset": "0x3AC",
+					"reset": "0x0",
+					"action" : "PERFORM_WRITE(REG_PRTN1_CORE3_ADDR, val & 0xfffffffe)"
 				},
 				"PRTN2_PCONF" : {
 					"offset": "0x500",
@@ -931,7 +986,7 @@
 			"name": "siul2_1",
 			"offset" : "0x44010000",
 			"description": "System Integration Unit Lite2 1",
-			"helpers": "void set_siul2_external_irq(int i) { PERFORM_WRITE(REG_DISR0, PERFORM_READ(REG_DISR0) | BIT(i));   }",
+			"helpers": "",
 			"registers": {
 				"MIDR1" : {
 					"offset": "0x4",
@@ -1119,6 +1174,23 @@
 
 			},
 			"size":"0x400"
+		},
+		"NCORE":{
+			"soc": "s32g2",
+			"name": "ncore",
+			"offset" : "0x50400000",
+			"description": "Ncore concerto config",
+			"helpers": "",
+			"registers": {
+				"STAT" : {
+					"offset": "0x0",
+					"reset": "0x0"
+				}
+
+			},
+			"size":"0x100000",
+			"min_access":1,
+			"max_access":8
 		}
 	}
 }

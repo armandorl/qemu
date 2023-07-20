@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/sysbus.h"
+#include "hw/core/cpu.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/timer.h"
@@ -41,82 +42,86 @@ enum {
 #define PERFORM_WRITE(reg, val)   s->regs[REG_INDEX(reg)] = val
 
 static int supervisor_mode=1;
+
 static QEMUTimer timer1;
-static void trigger_hardware_init(void* opaque){}
+
+static void trigger_hardware_init(void* opaque){
+}
+
 
 static uint64_t s32g2_rtc_read(void *opaque, hwaddr offset,
-                                          unsigned size)
+		unsigned size)
 {
-    const S32G2rtcState *s = S32G2_RTC(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	const S32G2rtcState *s = S32G2_RTC(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_RTC_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return 0;
-    }
+	if (idx >= S32G2_RTC_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return 0;
+	}
 
-    uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-    return retVal;
+	uint64_t retVal = s->regs[idx];
+	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+	return retVal;
 }
 
 static void s32g2_rtc_write(void *opaque, hwaddr offset,
-                                       uint64_t val, unsigned size)
+		uint64_t val, unsigned size)
 {
-    S32G2rtcState *s = S32G2_RTC(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	S32G2rtcState *s = S32G2_RTC(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_RTC_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return;
-    }
+	if (idx >= S32G2_RTC_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return;
+	}
 
-    switch (offset) {
-    
+	switch (offset) {
+
 		case REG_RTCSUPV:
-PERFORM_WRITE(REG_RTCSUPV, val);
+			PERFORM_WRITE(REG_RTCSUPV, val);
 			supervisor_mode=!!(val&0x80000000);
-;			break;
+			;			break;
 		case REG_RTCC:
-PERFORM_WRITE(REG_RTCC, val);
+			PERFORM_WRITE(REG_RTCC, val);
 			if(supervisor_mode) { printf("Set RTC:0x%08lx\n", val);
- if(val&0x80000000){ printf("RTC timer enabled\n");
-timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
-timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100); } }
-else{ printf("ERROR: Set RTC value while not on supervisor mode\n");}
-;			break;
+				if(val&0x80000000){ printf("RTC timer enabled\n");
+					timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
+					timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100); } }
+			else{ printf("ERROR: Set RTC value while not on supervisor mode\n");}
+			;			break;
 		case REG_RTCS:
-PERFORM_WRITE(REG_RTCS, val);
+			PERFORM_WRITE(REG_RTCS, val);
 			supervisor_mode=1;
-;			break;
+			;			break;
 
-    default:
-        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-        s->regs[idx] = (uint32_t) val;
-        return;
-    }
-    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+		default:
+			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+			s->regs[idx] = (uint32_t) val;
+			return;
+	}
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_rtc_ops = {
-    .read = s32g2_rtc_read,
-    .write = s32g2_rtc_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .valid = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-    },
-    .impl.min_access_size = 4,
+	.read = s32g2_rtc_read,
+	.write = s32g2_rtc_write,
+	.endianness = DEVICE_NATIVE_ENDIAN,
+	.valid = {
+		.min_access_size = 4,
+		.max_access_size = 4,
+	},
+	.impl.min_access_size = 4,
 };
 
 static void s32g2_rtc_reset(DeviceState *dev)
 {
-    S32G2rtcState *s = S32G2_RTC(dev); 
+	S32G2rtcState *s = S32G2_RTC(dev); 
 
-    /* Set default values for registers */
-    	PERFORM_WRITE(REG_RTCSUPV,0x80000000);
+	/* Set default values for registers */
+	PERFORM_WRITE(REG_RTCSUPV,0x80000000);
 	PERFORM_WRITE(REG_RTCC,0x0);
 	PERFORM_WRITE(REG_RTCS,0x80000000);
 
@@ -124,44 +129,44 @@ static void s32g2_rtc_reset(DeviceState *dev)
 
 static void s32g2_rtc_init(Object *obj)
 {
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    S32G2rtcState *s = S32G2_RTC(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+	S32G2rtcState *s = S32G2_RTC(obj);
 
-    /* Memory mapping */
-    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_rtc_ops, s,
-                           TYPE_S32G2_RTC, 0x400);
-    sysbus_init_mmio(sbd, &s->iomem);
+	/* Memory mapping */
+	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_rtc_ops, s,
+			TYPE_S32G2_RTC, 0x400);
+	sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_rtc_vmstate = {
-    .name = "s32g2_rtc",
-    .version_id = 1,
-    .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
-        VMSTATE_UINT32_ARRAY(regs, S32G2rtcState, S32G2_RTC_REGS_NUM),
-        VMSTATE_END_OF_LIST()
-    }
+	.name = "s32g2_rtc",
+	.version_id = 1,
+	.minimum_version_id = 1,
+	.fields = (VMStateField[]) {
+		VMSTATE_UINT32_ARRAY(regs, S32G2rtcState, S32G2_RTC_REGS_NUM),
+		VMSTATE_END_OF_LIST()
+	}
 };
 
 static void s32g2_rtc_class_init(ObjectClass *klass, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(klass);
+	DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->reset = s32g2_rtc_reset;
-    dc->vmsd = &s32g2_rtc_vmstate;
+	dc->reset = s32g2_rtc_reset;
+	dc->vmsd = &s32g2_rtc_vmstate;
 }
 
 static const TypeInfo s32g2_rtc_info = {
-    .name          = TYPE_S32G2_RTC,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_init = s32g2_rtc_init,
-    .instance_size = sizeof(S32G2rtcState),
-    .class_init    = s32g2_rtc_class_init,
+	.name          = TYPE_S32G2_RTC,
+	.parent        = TYPE_SYS_BUS_DEVICE,
+	.instance_init = s32g2_rtc_init,
+	.instance_size = sizeof(S32G2rtcState),
+	.class_init    = s32g2_rtc_class_init,
 };
 
 static void s32g2_rtc_register(void)
 {
-    type_register_static(&s32g2_rtc_info);
+	type_register_static(&s32g2_rtc_info);
 }
 
 type_init(s32g2_rtc_register)

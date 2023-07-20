@@ -46,6 +46,7 @@
 #include "hw/misc/s32g2/mc_cgm2.h"
 #include "hw/misc/s32g2/mc_cgm5.h"
 #include "hw/misc/s32g2/mc_rgm.h"
+#include "hw/misc/s32g2/ncore.h"
 #include "hw/misc/s32g2/rdc.h"
 #include "hw/misc/s32g2/hsemu.h"
 #include "hw/misc/s32g2/src.h"
@@ -145,6 +146,7 @@ enum {
     S32G2_DEV_MC_CGM2,
     S32G2_DEV_MC_CGM5,
     S32G2_DEV_MC_RGM,
+    S32G2_DEV_NCORE,
     S32G2_DEV_WKPU,
     S32G2_DEV_XOSC,
     S32G2_DEV_DFS,
@@ -237,6 +239,7 @@ struct S32G2State {
     S32G2mc_cgm2State mc_cgm2;
     S32G2mc_cgm5State mc_cgm5;
     S32G2mc_rgmState mc_rgm;
+    S32G2ncoreState ncore;
     S32G2wkpuState wkpu;
     S32G2xoscState xosc;
     S32G2dfsState dfs;

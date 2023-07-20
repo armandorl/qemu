@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/sysbus.h"
+#include "hw/core/cpu.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/timer.h"
@@ -30,38 +31,38 @@
 static int debug=0;
 
 enum {
-	REG_MUX_11_CSS=	0x5C4,
-	REG_MUX_9_CSS=	0x544,
-	REG_MUX_7_CSS=	0x4c4,
-	REG_MUX_14_CSC=	0x680,
-	REG_MUX_11_CSC=	0x5C0,
-	REG_MUX_9_CSC=	0x540,
-	REG_MUX_7_CSC=	0x4c0,
-	REG_MUX_14_CSS=	0x684,
-	REG_MUX_3_CSC=	0x3c0,
-	REG_MUX_16_CSS=	0x704,
-	REG_MUX_12_CSC=	0x600,
-	REG_MUX_15_CSS=	0x6c4,
 	REG_MUX_0_CSC=	0x300,
-	REG_MUX_3_CSS=	0x3C4,
-	REG_MUX_16_CSC=	0x700,
-	REG_MUX_12_CSS=	0x604,
-	REG_MUX_15_CSC=	0x6C0,
 	REG_MUX_0_CSS=	0x304,
-	REG_MUX_6_CSS=	0x484,
-	REG_MUX_4_CSC=	0x400,
-	REG_MUX_5_CSS=	0x444,
+	REG_MUX_1_CSC=	0x340,
+	REG_MUX_1_CSS=	0x344,
 	REG_MUX_2_CSS=	0x384,
-	REG_MUX_6_CSC=	0x480,
+	REG_MUX_3_CSC=	0x3c0,
+	REG_MUX_3_CSS=	0x3C4,
+	REG_MUX_4_CSC=	0x400,
 	REG_MUX_4_CSS=	0x404,
 	REG_MUX_5_CSC=	0x440,
-	REG_MUX_10_CSC=	0x580,
+	REG_MUX_5_CSS=	0x444,
+	REG_MUX_6_CSC=	0x480,
+	REG_MUX_6_CSS=	0x484,
+	REG_MUX_7_CSC=	0x4c0,
+	REG_MUX_7_CSS=	0x4c4,
 	REG_MUX_8_CSC=	0x500,
-	REG_MUX_1_CSS=	0x344,
-	REG_MUX_10_CSS=	0x584,
-	REG_MUX_13_CSS=	0x644,
 	REG_MUX_8_CSS=	0x504,
-	REG_MUX_1_CSC=	0x340,
+	REG_MUX_9_CSC=	0x540,
+	REG_MUX_9_CSS=	0x544,
+	REG_MUX_10_CSC=	0x580,
+	REG_MUX_10_CSS=	0x584,
+	REG_MUX_11_CSC=	0x5C0,
+	REG_MUX_11_CSS=	0x5C4,
+	REG_MUX_12_CSC=	0x600,
+	REG_MUX_12_CSS=	0x604,
+	REG_MUX_13_CSS=	0x644,
+	REG_MUX_14_CSC=	0x680,
+	REG_MUX_14_CSS=	0x684,
+	REG_MUX_15_CSC=	0x6C0,
+	REG_MUX_15_CSS=	0x6c4,
+	REG_MUX_16_CSC=	0x700,
+	REG_MUX_16_CSS=	0x704,
 };
 
 
@@ -72,245 +73,245 @@ enum {
 
 
 static uint64_t s32g2_mc_cgm_read(void *opaque, hwaddr offset,
-                                          unsigned size)
+		unsigned size)
 {
-    const S32G2mc_cgmState *s = S32G2_MC_CGM(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	const S32G2mc_cgmState *s = S32G2_MC_CGM(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_MC_CGM_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return 0;
-    }
+	if (idx >= S32G2_MC_CGM_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return 0;
+	}
 
-    uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-    return retVal;
+	uint64_t retVal = s->regs[idx];
+	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+	return retVal;
 }
 
 static void s32g2_mc_cgm_write(void *opaque, hwaddr offset,
-                                       uint64_t val, unsigned size)
+		uint64_t val, unsigned size)
 {
-    S32G2mc_cgmState *s = S32G2_MC_CGM(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	S32G2mc_cgmState *s = S32G2_MC_CGM(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_MC_CGM_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return;
-    }
+	if (idx >= S32G2_MC_CGM_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return;
+	}
 
-    switch (offset) {
-    
-		case REG_MUX_11_CSS:
-			return;
-		case REG_MUX_9_CSS:
-			return;
-		case REG_MUX_7_CSS:
-			return;
-		case REG_MUX_14_CSC:
-PERFORM_WRITE(REG_MUX_14_CSC, val);
-			PERFORM_WRITE(REG_MUX_14_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_14_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
-		case REG_MUX_11_CSC:
-PERFORM_WRITE(REG_MUX_11_CSC, val);
-			PERFORM_WRITE(REG_MUX_11_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_11_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
-		case REG_MUX_9_CSC:
-PERFORM_WRITE(REG_MUX_9_CSC, val);
-			PERFORM_WRITE(REG_MUX_9_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_9_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
-		case REG_MUX_7_CSC:
-PERFORM_WRITE(REG_MUX_7_CSC, val);
-			PERFORM_WRITE(REG_MUX_7_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_7_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
-		case REG_MUX_14_CSS:
-			return;
-		case REG_MUX_3_CSC:
-PERFORM_WRITE(REG_MUX_3_CSC, val);
-			PERFORM_WRITE(REG_MUX_3_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_3_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
-		case REG_MUX_16_CSS:
-			return;
-		case REG_MUX_12_CSC:
-PERFORM_WRITE(REG_MUX_12_CSC, val);
-			PERFORM_WRITE(REG_MUX_12_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_12_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
-		case REG_MUX_15_CSS:
-			return;
+	switch (offset) {
+
 		case REG_MUX_0_CSC:
-PERFORM_WRITE(REG_MUX_0_CSC, val);
+			PERFORM_WRITE(REG_MUX_0_CSC, val);
 			PERFORM_WRITE(REG_MUX_0_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_0_CSS, (val & 0x0F00000F) | BIT(17));
-;			break;
-		case REG_MUX_3_CSS:
-			return;
-		case REG_MUX_16_CSC:
-PERFORM_WRITE(REG_MUX_16_CSC, val);
-			PERFORM_WRITE(REG_MUX_16_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_16_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
-		case REG_MUX_12_CSS:
-			return;
-		case REG_MUX_15_CSC:
-PERFORM_WRITE(REG_MUX_15_CSC, val);
-			PERFORM_WRITE(REG_MUX_15_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_15_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
+			PERFORM_WRITE(REG_MUX_0_CSS, (val & 0x0F00000F) | BIT(17));
+			;			break;
 		case REG_MUX_0_CSS:
 			return;
-		case REG_MUX_6_CSS:
-			return;
-		case REG_MUX_4_CSC:
-PERFORM_WRITE(REG_MUX_4_CSC, val);
-			PERFORM_WRITE(REG_MUX_4_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_4_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
-		case REG_MUX_5_CSS:
+		case REG_MUX_1_CSC:
+			PERFORM_WRITE(REG_MUX_1_CSC, val);
+			PERFORM_WRITE(REG_MUX_1_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_1_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_1_CSS:
 			return;
 		case REG_MUX_2_CSS:
 			return;
-		case REG_MUX_6_CSC:
-PERFORM_WRITE(REG_MUX_6_CSC, val);
-			PERFORM_WRITE(REG_MUX_6_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_6_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
+		case REG_MUX_3_CSC:
+			PERFORM_WRITE(REG_MUX_3_CSC, val);
+			PERFORM_WRITE(REG_MUX_3_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_3_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_3_CSS:
+			return;
+		case REG_MUX_4_CSC:
+			PERFORM_WRITE(REG_MUX_4_CSC, val);
+			PERFORM_WRITE(REG_MUX_4_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_4_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
 		case REG_MUX_4_CSS:
 			return;
 		case REG_MUX_5_CSC:
-PERFORM_WRITE(REG_MUX_5_CSC, val);
+			PERFORM_WRITE(REG_MUX_5_CSC, val);
 			PERFORM_WRITE(REG_MUX_5_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_5_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
-		case REG_MUX_10_CSC:
-PERFORM_WRITE(REG_MUX_10_CSC, val);
-			PERFORM_WRITE(REG_MUX_10_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_10_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
-		case REG_MUX_8_CSC:
-PERFORM_WRITE(REG_MUX_8_CSC, val);
-			PERFORM_WRITE(REG_MUX_8_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_8_CSS, (val & 0x1F00000F) | BIT(17));
-;			break;
-		case REG_MUX_1_CSS:
+			PERFORM_WRITE(REG_MUX_5_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_5_CSS:
 			return;
+		case REG_MUX_6_CSC:
+			PERFORM_WRITE(REG_MUX_6_CSC, val);
+			PERFORM_WRITE(REG_MUX_6_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_6_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_6_CSS:
+			return;
+		case REG_MUX_7_CSC:
+			PERFORM_WRITE(REG_MUX_7_CSC, val);
+			PERFORM_WRITE(REG_MUX_7_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_7_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_7_CSS:
+			return;
+		case REG_MUX_8_CSC:
+			PERFORM_WRITE(REG_MUX_8_CSC, val);
+			PERFORM_WRITE(REG_MUX_8_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_8_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_8_CSS:
+			return;
+		case REG_MUX_9_CSC:
+			PERFORM_WRITE(REG_MUX_9_CSC, val);
+			PERFORM_WRITE(REG_MUX_9_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_9_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_9_CSS:
+			return;
+		case REG_MUX_10_CSC:
+			PERFORM_WRITE(REG_MUX_10_CSC, val);
+			PERFORM_WRITE(REG_MUX_10_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_10_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
 		case REG_MUX_10_CSS:
+			return;
+		case REG_MUX_11_CSC:
+			PERFORM_WRITE(REG_MUX_11_CSC, val);
+			PERFORM_WRITE(REG_MUX_11_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_11_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_11_CSS:
+			return;
+		case REG_MUX_12_CSC:
+			PERFORM_WRITE(REG_MUX_12_CSC, val);
+			PERFORM_WRITE(REG_MUX_12_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_12_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_12_CSS:
 			return;
 		case REG_MUX_13_CSS:
 			return;
-		case REG_MUX_8_CSS:
+		case REG_MUX_14_CSC:
+			PERFORM_WRITE(REG_MUX_14_CSC, val);
+			PERFORM_WRITE(REG_MUX_14_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_14_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_14_CSS:
 			return;
-		case REG_MUX_1_CSC:
-PERFORM_WRITE(REG_MUX_1_CSC, val);
-			PERFORM_WRITE(REG_MUX_1_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
-PERFORM_WRITE(REG_MUX_1_CSS, (val & 0x3F00000F) | BIT(17));
-;			break;
+		case REG_MUX_15_CSC:
+			PERFORM_WRITE(REG_MUX_15_CSC, val);
+			PERFORM_WRITE(REG_MUX_15_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_15_CSS, (val & 0x3F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_15_CSS:
+			return;
+		case REG_MUX_16_CSC:
+			PERFORM_WRITE(REG_MUX_16_CSC, val);
+			PERFORM_WRITE(REG_MUX_16_CSC, (val & 0xFFFFFFF0)); /* Auto clear */
+			PERFORM_WRITE(REG_MUX_16_CSS, (val & 0x1F00000F) | BIT(17));
+			;			break;
+		case REG_MUX_16_CSS:
+			return;
 
-    default:
-        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-        s->regs[idx] = (uint32_t) val;
-        return;
-    }
-    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+		default:
+			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+			s->regs[idx] = (uint32_t) val;
+			return;
+	}
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_mc_cgm_ops = {
-    .read = s32g2_mc_cgm_read,
-    .write = s32g2_mc_cgm_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .valid = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-    },
-    .impl.min_access_size = 4,
+	.read = s32g2_mc_cgm_read,
+	.write = s32g2_mc_cgm_write,
+	.endianness = DEVICE_NATIVE_ENDIAN,
+	.valid = {
+		.min_access_size = 4,
+		.max_access_size = 4,
+	},
+	.impl.min_access_size = 4,
 };
 
 static void s32g2_mc_cgm_reset(DeviceState *dev)
 {
-    S32G2mc_cgmState *s = S32G2_MC_CGM(dev); 
+	S32G2mc_cgmState *s = S32G2_MC_CGM(dev); 
 
-    /* Set default values for registers */
-    	PERFORM_WRITE(REG_MUX_11_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_9_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_7_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_14_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_11_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_9_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_7_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_14_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_3_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_16_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_12_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_15_CSS,0x00080000);
+	/* Set default values for registers */
 	PERFORM_WRITE(REG_MUX_0_CSC,0x0);
-	PERFORM_WRITE(REG_MUX_3_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_16_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_12_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_15_CSC,0x00000000);
 	PERFORM_WRITE(REG_MUX_0_CSS,0x80000);
-	PERFORM_WRITE(REG_MUX_6_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_4_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_5_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_1_CSC,0x02000000);
+	PERFORM_WRITE(REG_MUX_1_CSS,0x02020000);
 	PERFORM_WRITE(REG_MUX_2_CSS,0x02020000);
-	PERFORM_WRITE(REG_MUX_6_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_3_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_3_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_4_CSC,0x00000000);
 	PERFORM_WRITE(REG_MUX_4_CSS,0x00080000);
 	PERFORM_WRITE(REG_MUX_5_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_10_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_5_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_6_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_6_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_7_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_7_CSS,0x00080000);
 	PERFORM_WRITE(REG_MUX_8_CSC,0x00000000);
-	PERFORM_WRITE(REG_MUX_1_CSS,0x02020000);
-	PERFORM_WRITE(REG_MUX_10_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_13_CSS,0x00080000);
 	PERFORM_WRITE(REG_MUX_8_CSS,0x00080000);
-	PERFORM_WRITE(REG_MUX_1_CSC,0x02000000);
+	PERFORM_WRITE(REG_MUX_9_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_9_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_10_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_10_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_11_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_11_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_12_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_12_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_13_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_14_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_14_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_15_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_15_CSS,0x00080000);
+	PERFORM_WRITE(REG_MUX_16_CSC,0x00000000);
+	PERFORM_WRITE(REG_MUX_16_CSS,0x00080000);
 
 }
 
 static void s32g2_mc_cgm_init(Object *obj)
 {
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    S32G2mc_cgmState *s = S32G2_MC_CGM(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+	S32G2mc_cgmState *s = S32G2_MC_CGM(obj);
 
-    /* Memory mapping */
-    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_cgm_ops, s,
-                           TYPE_S32G2_MC_CGM, 0x800);
-    sysbus_init_mmio(sbd, &s->iomem);
+	/* Memory mapping */
+	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_cgm_ops, s,
+			TYPE_S32G2_MC_CGM, 0x800);
+	sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_mc_cgm_vmstate = {
-    .name = "s32g2_mc_cgm",
-    .version_id = 1,
-    .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
-        VMSTATE_UINT32_ARRAY(regs, S32G2mc_cgmState, S32G2_MC_CGM_REGS_NUM),
-        VMSTATE_END_OF_LIST()
-    }
+	.name = "s32g2_mc_cgm",
+	.version_id = 1,
+	.minimum_version_id = 1,
+	.fields = (VMStateField[]) {
+		VMSTATE_UINT32_ARRAY(regs, S32G2mc_cgmState, S32G2_MC_CGM_REGS_NUM),
+		VMSTATE_END_OF_LIST()
+	}
 };
 
 static void s32g2_mc_cgm_class_init(ObjectClass *klass, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(klass);
+	DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->reset = s32g2_mc_cgm_reset;
-    dc->vmsd = &s32g2_mc_cgm_vmstate;
+	dc->reset = s32g2_mc_cgm_reset;
+	dc->vmsd = &s32g2_mc_cgm_vmstate;
 }
 
 static const TypeInfo s32g2_mc_cgm_info = {
-    .name          = TYPE_S32G2_MC_CGM,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_init = s32g2_mc_cgm_init,
-    .instance_size = sizeof(S32G2mc_cgmState),
-    .class_init    = s32g2_mc_cgm_class_init,
+	.name          = TYPE_S32G2_MC_CGM,
+	.parent        = TYPE_SYS_BUS_DEVICE,
+	.instance_init = s32g2_mc_cgm_init,
+	.instance_size = sizeof(S32G2mc_cgmState),
+	.class_init    = s32g2_mc_cgm_class_init,
 };
 
 static void s32g2_mc_cgm_register(void)
 {
-    type_register_static(&s32g2_mc_cgm_info);
+	type_register_static(&s32g2_mc_cgm_info);
 }
 
 type_init(s32g2_mc_cgm_register)

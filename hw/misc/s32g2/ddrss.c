@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/sysbus.h"
+#include "hw/core/cpu.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/timer.h"
@@ -31,11 +32,11 @@ static int debug=0;
 
 enum {
 	REG_STAT=	0x4,
+	REG_DFIMISC=	0x1b0,
+	REG_DFISTAT=	0x1bc,
 	REG_SWCTL=	0x320,
 	REG_SWSTAT=	0x324,
 	REG_SBRCTL=	0xf24,
-	REG_DFIMISC=	0x1b0,
-	REG_DFISTAT=	0x1bc,
 	REG_SBRSTAT=	0xf28,
 };
 
@@ -47,132 +48,132 @@ enum {
 
 
 static uint64_t s32g2_ddrss_read(void *opaque, hwaddr offset,
-                                          unsigned size)
+		unsigned size)
 {
-    const S32G2ddrssState *s = S32G2_DDRSS(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	const S32G2ddrssState *s = S32G2_DDRSS(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_DDRSS_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return 0;
-    }
+	if (idx >= S32G2_DDRSS_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return 0;
+	}
 
-    uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-    return retVal;
+	uint64_t retVal = s->regs[idx];
+	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+	return retVal;
 }
 
 static void s32g2_ddrss_write(void *opaque, hwaddr offset,
-                                       uint64_t val, unsigned size)
+		uint64_t val, unsigned size)
 {
-    S32G2ddrssState *s = S32G2_DDRSS(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	S32G2ddrssState *s = S32G2_DDRSS(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_DDRSS_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return;
-    }
+	if (idx >= S32G2_DDRSS_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return;
+	}
 
-    switch (offset) {
-    
+	switch (offset) {
+
 		case REG_STAT:
 			return;
+		case REG_DFIMISC:
+			PERFORM_WRITE(REG_DFIMISC, val);
+			if((val&BIT(5))==BIT(5)) PERFORM_WRITE(REG_DFISTAT, BIT(0));
+			if((val&BIT(0))==BIT(0)) PERFORM_WRITE(REG_STAT, 1);
+			;			break;
+		case REG_DFISTAT:
+			return;
 		case REG_SWCTL:
-PERFORM_WRITE(REG_SWCTL, val);
+			PERFORM_WRITE(REG_SWCTL, val);
 			PERFORM_WRITE(REG_SWSTAT, val);
-;			break;
+			;			break;
 		case REG_SWSTAT:
 			return;
 		case REG_SBRCTL:
-PERFORM_WRITE(REG_SBRCTL, val);
+			PERFORM_WRITE(REG_SBRCTL, val);
 			if((val&BIT(0))==BIT(0)) PERFORM_WRITE(REG_SBRSTAT, BIT(1));
-;			break;
-		case REG_DFIMISC:
-PERFORM_WRITE(REG_DFIMISC, val);
-			if((val&BIT(5))==BIT(5)) PERFORM_WRITE(REG_DFISTAT, BIT(0));
-if((val&BIT(0))==BIT(0)) PERFORM_WRITE(REG_STAT, 1);
-;			break;
-		case REG_DFISTAT:
-			return;
+			;			break;
 		case REG_SBRSTAT:
 			return;
 
-    default:
-        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-        s->regs[idx] = (uint32_t) val;
-        return;
-    }
-    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+		default:
+			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+			s->regs[idx] = (uint32_t) val;
+			return;
+	}
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_ddrss_ops = {
-    .read = s32g2_ddrss_read,
-    .write = s32g2_ddrss_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .valid = {
-        .min_access_size = 1,
-        .max_access_size = 4,
-    },
-    .impl.min_access_size = 1,
+	.read = s32g2_ddrss_read,
+	.write = s32g2_ddrss_write,
+	.endianness = DEVICE_NATIVE_ENDIAN,
+	.valid = {
+		.min_access_size = 1,
+		.max_access_size = 4,
+	},
+	.impl.min_access_size = 1,
 };
 
 static void s32g2_ddrss_reset(DeviceState *dev)
 {
-    S32G2ddrssState *s = S32G2_DDRSS(dev); 
+	S32G2ddrssState *s = S32G2_DDRSS(dev); 
 
-    /* Set default values for registers */
-    	PERFORM_WRITE(REG_STAT,0x0);
+	/* Set default values for registers */
+	PERFORM_WRITE(REG_STAT,0x0);
+	PERFORM_WRITE(REG_DFIMISC,0x41);
+	PERFORM_WRITE(REG_DFISTAT,0x0);
 	PERFORM_WRITE(REG_SWCTL,0x0);
 	PERFORM_WRITE(REG_SWSTAT,0x0);
 	PERFORM_WRITE(REG_SBRCTL,0x0);
-	PERFORM_WRITE(REG_DFIMISC,0x41);
-	PERFORM_WRITE(REG_DFISTAT,0x0);
 	PERFORM_WRITE(REG_SBRSTAT,0x0);
 
 }
 
 static void s32g2_ddrss_init(Object *obj)
 {
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    S32G2ddrssState *s = S32G2_DDRSS(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+	S32G2ddrssState *s = S32G2_DDRSS(obj);
 
-    /* Memory mapping */
-    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_ddrss_ops, s,
-                           TYPE_S32G2_DDRSS, 0x1000);
-    sysbus_init_mmio(sbd, &s->iomem);
+	/* Memory mapping */
+	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_ddrss_ops, s,
+			TYPE_S32G2_DDRSS, 0x1000);
+	sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_ddrss_vmstate = {
-    .name = "s32g2_ddrss",
-    .version_id = 1,
-    .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
-        VMSTATE_UINT32_ARRAY(regs, S32G2ddrssState, S32G2_DDRSS_REGS_NUM),
-        VMSTATE_END_OF_LIST()
-    }
+	.name = "s32g2_ddrss",
+	.version_id = 1,
+	.minimum_version_id = 1,
+	.fields = (VMStateField[]) {
+		VMSTATE_UINT32_ARRAY(regs, S32G2ddrssState, S32G2_DDRSS_REGS_NUM),
+		VMSTATE_END_OF_LIST()
+	}
 };
 
 static void s32g2_ddrss_class_init(ObjectClass *klass, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(klass);
+	DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->reset = s32g2_ddrss_reset;
-    dc->vmsd = &s32g2_ddrss_vmstate;
+	dc->reset = s32g2_ddrss_reset;
+	dc->vmsd = &s32g2_ddrss_vmstate;
 }
 
 static const TypeInfo s32g2_ddrss_info = {
-    .name          = TYPE_S32G2_DDRSS,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_init = s32g2_ddrss_init,
-    .instance_size = sizeof(S32G2ddrssState),
-    .class_init    = s32g2_ddrss_class_init,
+	.name          = TYPE_S32G2_DDRSS,
+	.parent        = TYPE_SYS_BUS_DEVICE,
+	.instance_init = s32g2_ddrss_init,
+	.instance_size = sizeof(S32G2ddrssState),
+	.class_init    = s32g2_ddrss_class_init,
 };
 
 static void s32g2_ddrss_register(void)
 {
-    type_register_static(&s32g2_ddrss_info);
+	type_register_static(&s32g2_ddrss_info);
 }
 
 type_init(s32g2_ddrss_register)

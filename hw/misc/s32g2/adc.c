@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/sysbus.h"
+#include "hw/core/cpu.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/timer.h"
@@ -31,14 +32,14 @@ static int debug=0;
 
 enum {
 	REG_ISR=	0x10,
-	REG_PCDR2=	0x108,
-	REG_PCDR3=	0x10C,
 	REG_PCDR0=	0x100,
 	REG_PCDR1=	0x104,
-	REG_PCDR6=	0x118,
-	REG_PCDR7=	0x11C,
+	REG_PCDR2=	0x108,
+	REG_PCDR3=	0x10C,
 	REG_PCDR4=	0x110,
 	REG_PCDR5=	0x114,
+	REG_PCDR6=	0x118,
+	REG_PCDR7=	0x11C,
 };
 
 
@@ -49,131 +50,131 @@ enum {
 
 
 static uint64_t s32g2_adc_read(void *opaque, hwaddr offset,
-                                          unsigned size)
+		unsigned size)
 {
-    const S32G2adcState *s = S32G2_ADC(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	const S32G2adcState *s = S32G2_ADC(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_ADC_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return 0;
-    }
+	if (idx >= S32G2_ADC_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return 0;
+	}
 
-    uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-    return retVal;
+	uint64_t retVal = s->regs[idx];
+	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+	return retVal;
 }
 
 static void s32g2_adc_write(void *opaque, hwaddr offset,
-                                       uint64_t val, unsigned size)
+		uint64_t val, unsigned size)
 {
-    S32G2adcState *s = S32G2_ADC(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	S32G2adcState *s = S32G2_ADC(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_ADC_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return;
-    }
+	if (idx >= S32G2_ADC_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return;
+	}
 
-    switch (offset) {
-    
+	switch (offset) {
+
 		case REG_ISR:
-			return;
-		case REG_PCDR2:
-			return;
-		case REG_PCDR3:
 			return;
 		case REG_PCDR0:
 			return;
 		case REG_PCDR1:
 			return;
-		case REG_PCDR6:
+		case REG_PCDR2:
 			return;
-		case REG_PCDR7:
+		case REG_PCDR3:
 			return;
 		case REG_PCDR4:
 			return;
 		case REG_PCDR5:
 			return;
+		case REG_PCDR6:
+			return;
+		case REG_PCDR7:
+			return;
 
-    default:
-        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-        s->regs[idx] = (uint32_t) val;
-        return;
-    }
-    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+		default:
+			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+			s->regs[idx] = (uint32_t) val;
+			return;
+	}
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_adc_ops = {
-    .read = s32g2_adc_read,
-    .write = s32g2_adc_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .valid = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-    },
-    .impl.min_access_size = 4,
+	.read = s32g2_adc_read,
+	.write = s32g2_adc_write,
+	.endianness = DEVICE_NATIVE_ENDIAN,
+	.valid = {
+		.min_access_size = 4,
+		.max_access_size = 4,
+	},
+	.impl.min_access_size = 4,
 };
 
 static void s32g2_adc_reset(DeviceState *dev)
 {
-    S32G2adcState *s = S32G2_ADC(dev); 
+	S32G2adcState *s = S32G2_ADC(dev); 
 
-    /* Set default values for registers */
-    	PERFORM_WRITE(REG_ISR,0x1F);
-	PERFORM_WRITE(REG_PCDR2,0x00080084);
-	PERFORM_WRITE(REG_PCDR3,0x00080084);
+	/* Set default values for registers */
+	PERFORM_WRITE(REG_ISR,0x1F);
 	PERFORM_WRITE(REG_PCDR0,0x00080084);
 	PERFORM_WRITE(REG_PCDR1,0x00080084);
-	PERFORM_WRITE(REG_PCDR6,0x00080084);
-	PERFORM_WRITE(REG_PCDR7,0x00080084);
+	PERFORM_WRITE(REG_PCDR2,0x00080084);
+	PERFORM_WRITE(REG_PCDR3,0x00080084);
 	PERFORM_WRITE(REG_PCDR4,0x00080084);
 	PERFORM_WRITE(REG_PCDR5,0x00080084);
+	PERFORM_WRITE(REG_PCDR6,0x00080084);
+	PERFORM_WRITE(REG_PCDR7,0x00080084);
 
 }
 
 static void s32g2_adc_init(Object *obj)
 {
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    S32G2adcState *s = S32G2_ADC(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+	S32G2adcState *s = S32G2_ADC(obj);
 
-    /* Memory mapping */
-    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_adc_ops, s,
-                           TYPE_S32G2_ADC, 0x400);
-    sysbus_init_mmio(sbd, &s->iomem);
+	/* Memory mapping */
+	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_adc_ops, s,
+			TYPE_S32G2_ADC, 0x400);
+	sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_adc_vmstate = {
-    .name = "s32g2_adc",
-    .version_id = 1,
-    .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
-        VMSTATE_UINT32_ARRAY(regs, S32G2adcState, S32G2_ADC_REGS_NUM),
-        VMSTATE_END_OF_LIST()
-    }
+	.name = "s32g2_adc",
+	.version_id = 1,
+	.minimum_version_id = 1,
+	.fields = (VMStateField[]) {
+		VMSTATE_UINT32_ARRAY(regs, S32G2adcState, S32G2_ADC_REGS_NUM),
+		VMSTATE_END_OF_LIST()
+	}
 };
 
 static void s32g2_adc_class_init(ObjectClass *klass, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(klass);
+	DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->reset = s32g2_adc_reset;
-    dc->vmsd = &s32g2_adc_vmstate;
+	dc->reset = s32g2_adc_reset;
+	dc->vmsd = &s32g2_adc_vmstate;
 }
 
 static const TypeInfo s32g2_adc_info = {
-    .name          = TYPE_S32G2_ADC,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_init = s32g2_adc_init,
-    .instance_size = sizeof(S32G2adcState),
-    .class_init    = s32g2_adc_class_init,
+	.name          = TYPE_S32G2_ADC,
+	.parent        = TYPE_SYS_BUS_DEVICE,
+	.instance_init = s32g2_adc_init,
+	.instance_size = sizeof(S32G2adcState),
+	.class_init    = s32g2_adc_class_init,
 };
 
 static void s32g2_adc_register(void)
 {
-    type_register_static(&s32g2_adc_info);
+	type_register_static(&s32g2_adc_info);
 }
 
 type_init(s32g2_adc_register)

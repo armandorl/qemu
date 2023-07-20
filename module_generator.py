@@ -30,6 +30,9 @@ with  open(module_file) as f:
         module_description = data['module'][module]['description']
         module_size = data['module'][module]['size']
         module_helpers = data['module'][module]['helpers']
+        module_helpers = module_helpers.replace("{", "{\n")
+        module_helpers = module_helpers.replace("}", "}\n")
+        module_helpers = module_helpers.replace(";", ";\n")
         module_register_map="enum {\n"
         module_register_reset=""
         module_register_write="\n"
@@ -76,6 +79,7 @@ with  open(module_file) as f:
                                     ))
                 except Exception as e:
                     print("ERROR: Failed to write source... " + str(e))
+        os.system("vim -c 'normal gg=G' -c 'x' " + MODULEPATH + "/" + soc_name + "/" + module_name + ".c" )
         
         with open(MODULEINCPATH + "/" + soc_name + "/" + module_name + ".h", "w") as f:
             with open(MODULEINCPATH + "/" + soc_name + "/template.txt") as template:

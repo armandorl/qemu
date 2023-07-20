@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/sysbus.h"
+#include "hw/core/cpu.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/timer.h"
@@ -30,18 +31,29 @@
 static int debug=0;
 
 enum {
-	REG_PRTN2_PUPD=	0x504,
-	REG_MODE_STAT=	0xC,
-	REG_PRTN0_PUPD=	0x104,
-	REG_PRTN2_STAT=	0x508,
-	REG_PRTN2_COFB0_STAT=	0x510,
 	REG_CTRL_KEY=	0x0,
-	REG_PRTN3_PUPD=	0x704,
-	REG_PRTN3_PCONF=	0x700,
+	REG_MODE_STAT=	0xC,
 	REG_PRTN0_PCONF=	0x100,
+	REG_PRTN0_PUPD=	0x104,
 	REG_PRTN0_STAT=	0x108,
 	REG_PRTN0_COFB0_STAT=	0x110,
+	REG_PRTN1_STAT=	0x308,
+	REG_PRTN1_CORE0_STAT=	0x348,
+	REG_PRTN1_CORE1_PUPD=	0x364,
+	REG_PRTN1_CORE1_STAT=	0x368,
+	REG_PRTN1_CORE1_ADDR=	0x36C,
+	REG_PRTN1_CORE2_PUPD=	0x384,
+	REG_PRTN1_CORE2_STAT=	0x388,
+	REG_PRTN1_CORE2_ADDR=	0x38C,
+	REG_PRTN1_CORE3_PUPD=	0x3A4,
+	REG_PRTN1_CORE3_STAT=	0x3A8,
+	REG_PRTN1_CORE3_ADDR=	0x3AC,
 	REG_PRTN2_PCONF=	0x500,
+	REG_PRTN2_PUPD=	0x504,
+	REG_PRTN2_STAT=	0x508,
+	REG_PRTN2_COFB0_STAT=	0x510,
+	REG_PRTN3_PCONF=	0x700,
+	REG_PRTN3_PUPD=	0x704,
 	REG_PRTN3_STAT=	0x708,
 };
 
@@ -51,153 +63,221 @@ enum {
 #define PERFORM_WRITE(reg, val)   s->regs[REG_INDEX(reg)] = val
 
 static unsigned int conf_control=0;
+
 static QEMUTimer timer1;
+
 static void trigger_hardware_init(void* opaque){
-S32G2mc_meState *s = S32G2_MC_ME(opaque);
-unsigned int x=0;
-conf_control=0;
-x=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);
-PERFORM_WRITE(REG_PRTN3_STAT, x);
-PERFORM_WRITE(REG_PRTN3_PUPD, 0);
-x=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);
-PERFORM_WRITE(REG_PRTN0_STAT, x);
-PERFORM_WRITE(REG_PRTN0_PUPD, 0);
-PERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);
-x=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);
-PERFORM_WRITE(REG_PRTN2_STAT, x);
-PERFORM_WRITE(REG_PRTN2_PUPD, 0);
-PERFORM_WRITE(REG_PRTN2_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);
-timer_deinit(&timer1);
+
+	S32G2mc_meState *s = S32G2_MC_ME(opaque);
+
+	unsigned int x=0;
+
+	conf_control=0;
+
+	x=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);
+
+	PERFORM_WRITE(REG_PRTN3_STAT, x);
+
+	PERFORM_WRITE(REG_PRTN3_PUPD, 0);
+
+	x=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);
+
+	PERFORM_WRITE(REG_PRTN0_STAT, x);
+
+	PERFORM_WRITE(REG_PRTN0_PUPD, 0);
+
+	PERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);
+
+	x=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);
+
+	PERFORM_WRITE(REG_PRTN2_STAT, x);
+
+	PERFORM_WRITE(REG_PRTN2_PUPD, 0);
+
+	PERFORM_WRITE(REG_PRTN2_COFB0_STAT, 0xFFFFFFFF);
+	timer_del(&timer1);
+
+	timer_deinit(&timer1);
+
 }
+
 
 
 static uint64_t s32g2_mc_me_read(void *opaque, hwaddr offset,
-                                          unsigned size)
+		unsigned size)
 {
-    const S32G2mc_meState *s = S32G2_MC_ME(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	const S32G2mc_meState *s = S32G2_MC_ME(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_MC_ME_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return 0;
-    }
+	if (idx >= S32G2_MC_ME_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return 0;
+	}
 
-    uint64_t retVal = s->regs[idx];
-    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-    return retVal;
+	uint64_t retVal = s->regs[idx];
+	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+	return retVal;
 }
 
 static void s32g2_mc_me_write(void *opaque, hwaddr offset,
-                                       uint64_t val, unsigned size)
+		uint64_t val, unsigned size)
 {
-    S32G2mc_meState *s = S32G2_MC_ME(opaque);
-    const uint32_t idx = REG_INDEX(offset);
+	S32G2mc_meState *s = S32G2_MC_ME(opaque);
+	const uint32_t idx = REG_INDEX(offset);
 
-    if (idx >= S32G2_MC_ME_REGS_NUM) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-                      __func__, (uint32_t)offset);
-        return;
-    }
+	if (idx >= S32G2_MC_ME_REGS_NUM) {
+		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+				__func__, (uint32_t)offset);
+		return;
+	}
 
-    switch (offset) {
-    
+	switch (offset) {
+
+		case REG_CTRL_KEY:
+			PERFORM_WRITE(REG_CTRL_KEY, val);
+			if(conf_control==0) conf_control++;
+			if(conf_control==1) {
+				timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
+				timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}
+			;			break;
 		case REG_MODE_STAT:
 			return;
-		case REG_PRTN2_STAT:
-			return;
-		case REG_CTRL_KEY:
-PERFORM_WRITE(REG_CTRL_KEY, val);
-			if(conf_control==0) conf_control++;
-if(conf_control==1) {
-timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
-timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}
-;			break;
 		case REG_PRTN0_STAT:
+			return;
+		case REG_PRTN1_STAT:
+			return;
+		case REG_PRTN1_CORE0_STAT:
+			return;
+		case REG_PRTN1_CORE1_PUPD:
+			PERFORM_WRITE(REG_PRTN1_CORE1_PUPD, val);
+			{ uint32_t addr= PERFORM_READ(REG_PRTN1_CORE1_ADDR);
+				PERFORM_WRITE(REG_PRTN1_CORE1_STAT, val); CPUState *cpu = qemu_get_cpu(1); cpu_set_pc(cpu, (vaddr)addr); }
+			;			break;
+		case REG_PRTN1_CORE1_STAT:
+			return;
+		case REG_PRTN1_CORE1_ADDR:
+			PERFORM_WRITE(REG_PRTN1_CORE1_ADDR, val);
+			PERFORM_WRITE(REG_PRTN1_CORE1_ADDR, val & 0xfffffffe)
+				;			break;
+		case REG_PRTN1_CORE2_PUPD:
+			PERFORM_WRITE(REG_PRTN1_CORE2_PUPD, val);
+			{ uint32_t addr= PERFORM_READ(REG_PRTN1_CORE2_ADDR);
+				PERFORM_WRITE(REG_PRTN1_CORE2_STAT, val); CPUState *cpu = qemu_get_cpu(2); cpu_set_pc(cpu, (vaddr)addr); }
+			;			break;
+		case REG_PRTN1_CORE2_STAT:
+			return;
+		case REG_PRTN1_CORE2_ADDR:
+			PERFORM_WRITE(REG_PRTN1_CORE2_ADDR, val);
+			PERFORM_WRITE(REG_PRTN1_CORE2_ADDR, val & 0xfffffffe)
+				;			break;
+		case REG_PRTN1_CORE3_PUPD:
+			PERFORM_WRITE(REG_PRTN1_CORE3_PUPD, val);
+			{ uint32_t addr= PERFORM_READ(REG_PRTN1_CORE3_ADDR);
+				PERFORM_WRITE(REG_PRTN1_CORE3_STAT, val); CPUState *cpu = qemu_get_cpu(3); cpu_set_pc(cpu, (vaddr)addr); }
+			;			break;
+		case REG_PRTN1_CORE3_STAT:
+			return;
+		case REG_PRTN1_CORE3_ADDR:
+			PERFORM_WRITE(REG_PRTN1_CORE3_ADDR, val);
+			PERFORM_WRITE(REG_PRTN1_CORE3_ADDR, val & 0xfffffffe)
+				;			break;
+		case REG_PRTN2_STAT:
 			return;
 		case REG_PRTN3_STAT:
 			return;
 
-    default:
-        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-        s->regs[idx] = (uint32_t) val;
-        return;
-    }
-    if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+		default:
+			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+			s->regs[idx] = (uint32_t) val;
+			return;
+	}
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_mc_me_ops = {
-    .read = s32g2_mc_me_read,
-    .write = s32g2_mc_me_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .valid = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-    },
-    .impl.min_access_size = 4,
+	.read = s32g2_mc_me_read,
+	.write = s32g2_mc_me_write,
+	.endianness = DEVICE_NATIVE_ENDIAN,
+	.valid = {
+		.min_access_size = 4,
+		.max_access_size = 4,
+	},
+	.impl.min_access_size = 4,
 };
 
 static void s32g2_mc_me_reset(DeviceState *dev)
 {
-    S32G2mc_meState *s = S32G2_MC_ME(dev); 
+	S32G2mc_meState *s = S32G2_MC_ME(dev); 
 
-    /* Set default values for registers */
-    	PERFORM_WRITE(REG_PRTN2_PUPD,0);
-	PERFORM_WRITE(REG_MODE_STAT,0);
-	PERFORM_WRITE(REG_PRTN0_PUPD,0);
-	PERFORM_WRITE(REG_PRTN2_STAT,0x4);
-	PERFORM_WRITE(REG_PRTN2_COFB0_STAT,0);
+	/* Set default values for registers */
 	PERFORM_WRITE(REG_CTRL_KEY,0x5af0);
-	PERFORM_WRITE(REG_PRTN3_PUPD,0);
-	PERFORM_WRITE(REG_PRTN3_PCONF,0);
+	PERFORM_WRITE(REG_MODE_STAT,0);
 	PERFORM_WRITE(REG_PRTN0_PCONF,0x1);
+	PERFORM_WRITE(REG_PRTN0_PUPD,0);
 	PERFORM_WRITE(REG_PRTN0_STAT,0x1);
 	PERFORM_WRITE(REG_PRTN0_COFB0_STAT,0);
+	PERFORM_WRITE(REG_PRTN1_STAT,0x1);
+	PERFORM_WRITE(REG_PRTN1_CORE0_STAT,0x1);
+	PERFORM_WRITE(REG_PRTN1_CORE1_PUPD,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE1_STAT,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE1_ADDR,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE2_PUPD,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE2_STAT,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE2_ADDR,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE3_PUPD,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE3_STAT,0x0);
+	PERFORM_WRITE(REG_PRTN1_CORE3_ADDR,0x0);
 	PERFORM_WRITE(REG_PRTN2_PCONF,0x4);
+	PERFORM_WRITE(REG_PRTN2_PUPD,0);
+	PERFORM_WRITE(REG_PRTN2_STAT,0x4);
+	PERFORM_WRITE(REG_PRTN2_COFB0_STAT,0);
+	PERFORM_WRITE(REG_PRTN3_PCONF,0);
+	PERFORM_WRITE(REG_PRTN3_PUPD,0);
 	PERFORM_WRITE(REG_PRTN3_STAT,0);
 
 }
 
 static void s32g2_mc_me_init(Object *obj)
 {
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    S32G2mc_meState *s = S32G2_MC_ME(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+	S32G2mc_meState *s = S32G2_MC_ME(obj);
 
-    /* Memory mapping */
-    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_me_ops, s,
-                           TYPE_S32G2_MC_ME, 0x800);
-    sysbus_init_mmio(sbd, &s->iomem);
+	/* Memory mapping */
+	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_me_ops, s,
+			TYPE_S32G2_MC_ME, 0x800);
+	sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_mc_me_vmstate = {
-    .name = "s32g2_mc_me",
-    .version_id = 1,
-    .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
-        VMSTATE_UINT32_ARRAY(regs, S32G2mc_meState, S32G2_MC_ME_REGS_NUM),
-        VMSTATE_END_OF_LIST()
-    }
+	.name = "s32g2_mc_me",
+	.version_id = 1,
+	.minimum_version_id = 1,
+	.fields = (VMStateField[]) {
+		VMSTATE_UINT32_ARRAY(regs, S32G2mc_meState, S32G2_MC_ME_REGS_NUM),
+		VMSTATE_END_OF_LIST()
+	}
 };
 
 static void s32g2_mc_me_class_init(ObjectClass *klass, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(klass);
+	DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->reset = s32g2_mc_me_reset;
-    dc->vmsd = &s32g2_mc_me_vmstate;
+	dc->reset = s32g2_mc_me_reset;
+	dc->vmsd = &s32g2_mc_me_vmstate;
 }
 
 static const TypeInfo s32g2_mc_me_info = {
-    .name          = TYPE_S32G2_MC_ME,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_init = s32g2_mc_me_init,
-    .instance_size = sizeof(S32G2mc_meState),
-    .class_init    = s32g2_mc_me_class_init,
+	.name          = TYPE_S32G2_MC_ME,
+	.parent        = TYPE_SYS_BUS_DEVICE,
+	.instance_init = s32g2_mc_me_init,
+	.instance_size = sizeof(S32G2mc_meState),
+	.class_init    = s32g2_mc_me_class_init,
 };
 
 static void s32g2_mc_me_register(void)
 {
-    type_register_static(&s32g2_mc_me_info);
+	type_register_static(&s32g2_mc_me_info);
 }
 
 type_init(s32g2_mc_me_register)

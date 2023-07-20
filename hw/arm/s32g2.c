@@ -123,14 +123,17 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_MC_CGM2]  =  0x44018000,
     [S32G2_DEV_SRAM_CTRL_STDBY] = 0x44028000,
     [S32G2_DEV_SERDES1]  =  0x44180000,
+    [S32G2_DEV_NCORE]      = 0x50400000,
     [S32G2_DEV_GIC_DIST]   = 0x50800000,
     [S32G2_DEV_GIC_RDIST0]   = 0x50880000,
     [S32G2_DEV_GIC_RDIST1]   = 0x508A0000,
     [S32G2_DEV_GIC_RDIST2]   = 0x508C0000,
     [S32G2_DEV_GIC_RDIST3]   = 0x508E0000,
+#if 0
     [S32G2_DEV_GIC_CPU]    = 0x50400000,
     [S32G2_DEV_GIC_HYP]    = 0x50410000,
     [S32G2_DEV_GIC_VCPU]   = 0x50420000,
+#endif
     [S32G2_DEV_DRAM]  = 0x80000000,
     [S32G2_DEV_DRAM2]  = 0x0880000000
 
@@ -200,8 +203,8 @@ struct S32G2Unimplemented {
 /*    { "ddr-mem",   0x40000000, 2 * GiB }, */
     { "n-brom",    0xffff0000, 32 * KiB },
     { "s-brom",    0xffff0000, 64 * KiB }
-#endif
     { "concerto",  0x50400000, 1 * MiB },
+#endif
 #if 0
     { "PLLAcc",    0x40040000, 12 * KiB },
     { "RTC",       0x40060000, 4 * KiB },
@@ -463,6 +466,7 @@ static void s32g2_init(Object *obj)
 #endif
     object_initialize_child(obj, "mc_rgm", &s->mc_rgm, TYPE_S32G2_MC_RGM);
     object_initialize_child(obj, "mc_me", &s->mc_me, TYPE_S32G2_MC_ME);
+    object_initialize_child(obj, "ncore", &s->ncore, TYPE_S32G2_NCORE);
     object_initialize_child(obj, "wkpu", &s->wkpu, TYPE_S32G2_WKPU);
     object_initialize_child(obj, "xosc", &s->xosc, TYPE_S32G2_XOSC);
     object_initialize_child(obj, "adc0", &s->adc0, TYPE_S32G2_ADC);
@@ -760,6 +764,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->mc_cgm2), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mc_cgm2), 0, s->memmap[S32G2_DEV_MC_CGM2]);
 #endif
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->ncore), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ncore), 0, s->memmap[S32G2_DEV_NCORE]);
 
     memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
                             32 * KiB, &error_abort);
