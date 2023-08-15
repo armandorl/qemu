@@ -900,6 +900,11 @@ void gicv3_dist_set_irq(GICv3State *s, int irq, int level)
         return;
     }
 
+    if( irq != 114 )
+    {
+	    printf("IRQ triggered:%d\n", irq);
+    }
+
     trace_gicv3_dist_set_irq(irq, level);
 
     gicv3_gicd_level_replace(s, irq, level);

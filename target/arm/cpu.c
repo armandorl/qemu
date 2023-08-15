@@ -847,6 +847,7 @@ static void arm_cpu_set_irq(void *opaque, int irq, int level)
     case ARM_CPU_IRQ:
     case ARM_CPU_FIQ:
         if (level) {
+/*		printf("CPU interrupt irq=%d mask=%x\n", irq, mask[irq]); */
             cpu_interrupt(cs, mask[irq]);
         } else {
             cpu_reset_interrupt(cs, mask[irq]);

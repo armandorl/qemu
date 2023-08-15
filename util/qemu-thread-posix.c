@@ -93,7 +93,10 @@ void qemu_mutex_lock_impl(QemuMutex *mutex, const char *file, const int line)
     qemu_mutex_pre_lock(mutex, file, line);
     err = pthread_mutex_lock(&mutex->lock);
     if (err)
+    {
+	printf("%s lock error %d\n", __func__, err);
         error_exit(err, __func__);
+    }
     qemu_mutex_post_lock(mutex, file, line);
 }
 
@@ -121,7 +124,10 @@ void qemu_mutex_unlock_impl(QemuMutex *mutex, const char *file, const int line)
     qemu_mutex_pre_unlock(mutex, file, line);
     err = pthread_mutex_unlock(&mutex->lock);
     if (err)
+    {
+	printf("%s unlock error %d\n", __func__, err);
         error_exit(err, __func__);
+    }
 }
 
 void qemu_rec_mutex_init(QemuRecMutex *mutex)
@@ -192,8 +198,12 @@ void qemu_cond_destroy(QemuCond *cond)
     assert(cond->initialized);
     cond->initialized = false;
     err = pthread_cond_destroy(&cond->cond);
+    printf("%s destroy cond=%p\n", __func__, cond);
     if (err)
+    {
+	printf("%s broadcast error %d\n", __func__, err);
         error_exit(err, __func__);
+    }
 }
 
 void qemu_cond_signal(QemuCond *cond)
@@ -201,9 +211,13 @@ void qemu_cond_signal(QemuCond *cond)
     int err;
 
     assert(cond->initialized);
+//    printf("%s signal cond=%p\n", __func__, cond);
     err = pthread_cond_signal(&cond->cond);
     if (err)
+    {
+	printf("%s broadcast error %d\n", __func__, err);
         error_exit(err, __func__);
+    }
 }
 
 void qemu_cond_broadcast(QemuCond *cond)
@@ -211,9 +225,13 @@ void qemu_cond_broadcast(QemuCond *cond)
     int err;
 
     assert(cond->initialized);
+//    printf("%s broadcast cond=%p\n", __func__, cond);
     err = pthread_cond_broadcast(&cond->cond);
     if (err)
+    {
+	printf("%s broadcast error %d\n", __func__, err);
         error_exit(err, __func__);
+    }
 }
 
 void qemu_cond_wait_impl(QemuCond *cond, QemuMutex *mutex, const char *file, const int line)
@@ -222,10 +240,15 @@ void qemu_cond_wait_impl(QemuCond *cond, QemuMutex *mutex, const char *file, con
 
     assert(cond->initialized);
     qemu_mutex_pre_unlock(mutex, file, line);
+//    printf("%s wait enter cond=%p\n", __func__, cond);
     err = pthread_cond_wait(&cond->cond, &mutex->lock);
+//    printf("%s wait exit cond=%p\n", __func__, cond);
     qemu_mutex_post_lock(mutex, file, line);
     if (err)
+    {
+	printf("%s wait error %d\n", __func__, err);
         error_exit(err, __func__);
+    }
 }
 
 static bool TSA_NO_TSA

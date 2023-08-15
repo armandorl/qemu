@@ -23,6 +23,7 @@
 #include "qemu/module.h"
 #include "qemu/units.h"
 #include "hw/qdev-core.h"
+#include "hw/qdev-clock.h"
 #include "hw/sysbus.h"
 #include "hw/char/serial.h"
 #include "hw/misc/unimp.h"
@@ -257,6 +258,7 @@ struct S32G2Unimplemented {
 };
 
 /* Per Processor Interrupts */
+#define GIC_SGI_INTERNAL    16
 enum {
     S32G2_GIC_PPI_PMU       = 23,
     S32G2_GIC_PPI_MAINT     = 25,
@@ -274,15 +276,15 @@ enum {
     S32G2_GIC_SPI_UART2     =  116 - GIC_INTERNAL,
     S32G2_GIC_SPI_SPI0      =  117 - GIC_INTERNAL,
     S32G2_GIC_SPI_SPI1      =  118 - GIC_INTERNAL,
-#if 1
+#if 0
     S32G2_GIC_SPI_TIMER0    = 101 - GIC_INTERNAL,
     S32G2_GIC_SPI_TIMER1    = 102 - GIC_INTERNAL,
 #else
     S32G2_GIC_SPI_TIMER0    = 85 - GIC_INTERNAL,
     S32G2_GIC_SPI_TIMER1    = 86 - GIC_INTERNAL,
 #endif
+    S32G2_GIC_SPI_MMC0      = 230 - GIC_INTERNAL,
     S32G2_GIC_SIUL2_1       = 242 - GIC_INTERNAL,
-    S32G2_GIC_SPI_MMC0      = 246 - GIC_INTERNAL
 };
 
 /* General constants */
@@ -425,10 +427,13 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
                   NULL, NULL, NULL, NULL, false);
 }
 
+
 static void s32g2_init(Object *obj)
 {
     S32G2State *s = S32G2(obj);
-
+#ifdef ARMV6_CONTAINED
+    DeviceState *armv7m;
+#endif
     s->memmap = s32g2_memmap;
 
     for (int i = 0; i < S32G2_NUM_CPUS; i++) {
@@ -436,6 +441,31 @@ static void s32g2_init(Object *obj)
                                 ARM_CPU_TYPE_NAME("cortex-a53"));
     }
 
+#ifdef ARMV6_CONTAINED
+    object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
+    s->m3clk = qdev_init_clock_in(DEVICE(obj), "m3clk", NULL, NULL, 0);
+    s->refclk = qdev_init_clock_in(DEVICE(obj), "refclk", NULL, NULL, 0);
+    /*
+     * TODO: ideally we should model the SoC SYSTICK_CR register at 0xe0042038,
+     * which allows the guest to program the divisor between the m3clk and
+     * the systick refclk to either /4, /8, /16 or /32, as well as setting
+     * the value the guest can read in the STCALIB register. Currently we
+     * implement the divisor as a fixed /32, which matches the reset value
+     * of SYSTICK_CR.
+     */
+    clock_set_mul_div(s->refclk, 32, 1);
+    clock_set_source(s->refclk, s->m3clk);
+
+    armv7m = DEVICE(&s->armv7m);
+    qdev_prop_set_uint32(armv7m, "num-irq", 81);
+    qdev_prop_set_bit(armv7m, "enable-bitband", true);
+    qdev_prop_set_string(armv7m, "cpu-type", "cortex-m7-arm-cpu");
+    qdev_connect_clock_in(armv7m, "cpuclk", s->m3clk);
+    qdev_connect_clock_in(armv7m, "refclk", s->refclk);
+    object_property_set_link(OBJECT(&s->armv7m), "memory",
+                             OBJECT(get_system_memory()), &error_abort);
+
+#endif
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
     object_initialize_child(obj, "timer", &s->timer, TYPE_S32G2_PIT);
 #if 0
@@ -540,12 +570,19 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
         qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el2", true);
 
 	/* Set core affinity */
+#if 1
         object_property_set_int(OBJECT(&s->cpus[i]), "mp-affinity",
                                 arm_cpu_mp_affinity(i, CORES_PER_CLUSTER) , NULL);
+#endif
         /* Mark realized */
         qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
     }
 
+#ifdef ARMV6_CONTAINED
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal)) {
+        return;
+    }
+#endif
     /* Generic Interrupt Controller */
     qdev_prop_set_uint32(DEVICE(&s->gic), "num-irq", S32G2_GIC_NUM_SPI + GIC_INTERNAL);
     qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 3);
@@ -585,8 +622,8 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
             [GTIMER_PHYS] = S32G2_GIC_PPI_PHYSTIMER,
             [GTIMER_VIRT] = S32G2_GIC_PPI_VIRTTIMER,
             [GTIMER_HYP]  = S32G2_GIC_PPI_HYPTIMER,
-            [GTIMER_SEC]  = S32G2_GIC_PPI_EL3_VIRTTIMER,
-            [GTIMER_HYPVIRT]  = S32G2_GIC_PPI_EL2_VIRTTIMER
+            [GTIMER_SEC]  = S32G2_GIC_PPI_EL3_VIRTTIMER
+/*            [GTIMER_HYPVIRT]  = S32G2_GIC_PPI_EL2_VIRTTIMER */
         };
 
         /* Connect CPU timer outputs to GIC PPI inputs */
@@ -594,6 +631,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
             qdev_connect_gpio_out(cpudev, irq,
                                   qdev_get_gpio_in(DEVICE(&s->gic),
                                                    ppibase + timer_irq[irq]));
+	    printf("CPU%d set timer irq %d (base=%d)\n", i, ppibase + timer_irq[irq], ppibase);
         }
 
         /* Connect GIC outputs to CPU interrupt inputs */

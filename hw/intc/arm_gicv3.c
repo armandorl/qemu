@@ -332,9 +332,15 @@ static void gicv3_set_irq(void *opaque, int irq, int level)
     GICv3State *s = opaque;
 
     if (irq < (s->num_irq - GIC_INTERNAL)) {
+#if 0
+        printf("Processing IRQ %d as external level %d\n", irq, level);
+#endif
         /* external interrupt (SPI) */
         gicv3_dist_set_irq(s, irq + GIC_INTERNAL, level);
     } else {
+#if 0
+        printf("Processing IRQ %d as internal level %d\n", irq, level);
+#endif
         /* per-cpu interrupt (PPI) */
         int cpu;
 

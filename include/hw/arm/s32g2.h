@@ -25,6 +25,7 @@
 #define HW_ARM_S32G2_H
 
 #include "qom/object.h"
+#include "hw/arm/armv7m.h"
 #include "hw/arm/boot.h"
 #include "hw/intc/arm_gicv3.h"
 //#include "hw/misc/s32g2-ccu.h"
@@ -203,6 +204,10 @@ struct S32G2State {
     /*< public >*/
 
     ARMCPU cpus[S32G2_NUM_CPUS];
+    ARMv7MState armv7m;
+    char *m_cpu_type;
+    Clock *m3clk;
+    Clock *refclk;
     const hwaddr *memmap;
 //    S32G2ClockCtlState ccu;
 //    AwCpuCfgState cpucfg;
@@ -273,6 +278,7 @@ struct S32G2State {
     S32G2serdesState serdes0;
     S32G2serdesState serdes1;
 
+    PCIBus *bus;
 };
 
 /**

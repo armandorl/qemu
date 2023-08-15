@@ -975,7 +975,9 @@ void gicv3_cpuif_update(GICv3CPUState *cs)
     }
 
     trace_gicv3_cpuif_set_irqs(gicv3_redist_affid(cs), fiqlevel, irqlevel);
-
+#if 0
+    printf("Set cpu ifc irq levels %d %d\n", fiqlevel, irqlevel);
+#endif
     qemu_set_irq(cs->parent_fiq, fiqlevel);
     qemu_set_irq(cs->parent_irq, irqlevel);
 }

@@ -29,7 +29,7 @@
 #include "hw/misc/s32g2/pit-module.h"
 #include "hw/qdev-properties.h"
 
-static int debug=0;
+static int debug=1;
 
 enum {
 	REG_TCTRL5=	0x158,
@@ -259,6 +259,7 @@ static void s32g2_pit_write(void *opaque, hwaddr offset,
 	const uint32_t idx = REG_INDEX(offset);
 	uint32_t timer_idx = PIT_MAX_TIMERS;
 
+	if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 	if (idx >= S32G2_PIT_REGS_NUM) {
 		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
 				__func__, (uint32_t)offset);
@@ -345,7 +346,6 @@ reg_tctrl_label:
 		default:
 			/* printf("%s offset=%lx val=%lx\n", __func__, offset, val); */
 			s->regs[idx] = (uint32_t) val;
-			return;
 	}
 	if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
 }
@@ -399,10 +399,10 @@ static void s32g2_pit_reset(DeviceState *dev)
 }
 
 static Property s32g2_pit_properties[] = {
-    DEFINE_PROP_UINT32("clk0-freq", S32G2pitState, clk_freq[0], 40000000),
-    DEFINE_PROP_UINT32("clk1-freq", S32G2pitState, clk_freq[1], 40000000),
-    DEFINE_PROP_UINT32("clk2-freq", S32G2pitState, clk_freq[2], 40000000),
-    DEFINE_PROP_UINT32("clk3-freq", S32G2pitState, clk_freq[3], 40000000),
+    DEFINE_PROP_UINT32("clk0-freq", S32G2pitState, clk_freq[0], 10000),
+    DEFINE_PROP_UINT32("clk1-freq", S32G2pitState, clk_freq[1], 10000),
+    DEFINE_PROP_UINT32("clk2-freq", S32G2pitState, clk_freq[2], 10000),
+    DEFINE_PROP_UINT32("clk3-freq", S32G2pitState, clk_freq[3], 10000),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -426,7 +426,7 @@ static void s32g2_pit_init(Object *obj)
 		/* s->timer[i] = ptimer_init(s32g2_pit_timer_cb, tc, PTIMER_POLICY_NO_IMMEDIATE_RELOAD|PTIMER_POLICY_NO_IMMEDIATE_TRIGGER); */
 		s->timer[i] = ptimer_init(s32g2_pit_timer_cb, tc, PTIMER_POLICY_NO_COUNTER_ROUND_DOWN);
 		ptimer_transaction_begin(s->timer[i]);
-                ptimer_set_period(s->timer[i], 20000);
+                ptimer_set_period(s->timer[i], 2000);
                 ptimer_set_count(s->timer[i], 10);
 		ptimer_stop(s->timer[i]);
 		ptimer_transaction_commit(s->timer[i]);

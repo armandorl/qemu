@@ -1,0 +1,16 @@
+add-auto-load-safe-path /media/armandorl/ubuntu/qemu/.gdbinit
+set breakpoint pending on
+#b arm_timer_update
+#b timerblock_tick
+#b gt_timer_access
+#b gt_recalc_timer
+#b gt_timer_reset
+#b gt_ctl_write
+#b gicv3_dist_set_irq
+b hw/intc/arm_gicv3_dist.c:905
+b hw/intc/arm_gicv3.c:339
+b hw/intc/arm_gicv3_redist.c:569
+b arm_cpu_set_irq
+b target/arm/tcg/translate-a64.c:14508
+b arm_cpu_exec_interrupt
+b arm_handle_psci_call

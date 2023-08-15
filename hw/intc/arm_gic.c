@@ -171,6 +171,7 @@ static inline void gic_update_internal(GICState *s, bool virt)
     qemu_irq *irq_lines = virt ? s->parent_virq : s->parent_irq;
     qemu_irq *fiq_lines = virt ? s->parent_vfiq : s->parent_fiq;
 
+    printf("Processing gic update internal virt=%d\n", virt);
     for (cpu = 0; cpu < s->num_cpu; cpu++) {
         cpu_iface = virt ? (cpu + GIC_NCPU) : cpu;
 
@@ -203,13 +204,13 @@ static inline void gic_update_internal(GICState *s, bool virt)
                 if (gic_irq_signaling_enabled(s, cpu, virt, 1 << group)) {
                     if (group == 0 &&
                         s->cpu_ctlr[cpu_iface] & GICC_CTLR_FIQ_EN) {
-                        DPRINTF("Raised pending FIQ %d (cpu %d)\n",
+                        printf("Raised pending FIQ %d (cpu %d)\n",
                                 best_irq, cpu_iface);
                         fiq_level = 1;
                         trace_gic_update_set_irq(cpu, virt ? "vfiq" : "fiq",
                                                  fiq_level);
                     } else {
-                        DPRINTF("Raised pending IRQ %d (cpu %d)\n",
+                        printf("Raised pending IRQ %d (cpu %d)\n",
                                 best_irq, cpu_iface);
                         irq_level = 1;
                         trace_gic_update_set_irq(cpu, virt ? "virq" : "irq",

@@ -28,8 +28,73 @@
 #include "hw/sd/sd.h"
 #include "hw/spi/spi.h"
 #include "hw/net/atwilc.h"
+#include "hw/pci/pci.h"
+#include "hw/pci/pci_host.h"
+#include "net/net.h"
+#include "hw/pci-host/gpex.h"
 
 static struct arm_boot_info s32g_vnp_rdb2_binfo;
+
+static void create_pcie(MachineState *ms, PCIBus *bus)
+{
+    hwaddr base_mmio = 0x5800000000 ;
+    hwaddr size_mmio = 16*1024*1024;
+    hwaddr base_ecam, size_ecam;
+    MemoryRegion *ecam_alias;
+    MemoryRegion *ecam_reg;
+    MemoryRegion *mmio_alias;
+    MemoryRegion *mmio_reg;
+    DeviceState *dev;
+    int i;
+    PCIHostState *pci;
+
+    dev = qdev_new(TYPE_GPEX_HOST);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+
+    base_ecam = 0x40400000;
+    size_ecam = 4096;
+    /* Map only the first size_ecam bytes of ECAM space */
+    ecam_alias = g_new0(MemoryRegion, 1);
+    ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
+    memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
+                             ecam_reg, 0, size_ecam);
+    memory_region_add_subregion(get_system_memory(), base_ecam, ecam_alias);
+
+
+    /* Map the MMIO window into system address space so as to expose
+     * the section of PCI MMIO space which starts at the same base address
+     * (ie 1:1 mapping for that part of PCI MMIO space visible through
+     * the window).
+     */
+    mmio_alias = g_new0(MemoryRegion, 1);
+    mmio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
+    memory_region_init_alias(mmio_alias, OBJECT(dev), "pcie-mmio",
+                             mmio_reg, base_mmio, size_mmio);
+    memory_region_add_subregion(get_system_memory(), base_mmio, mmio_alias);
+
+#if 0
+    for (i = 0; i < GPEX_NUM_IRQS; i++) {
+        sysbus_connect_irq(SYS_BUS_DEVICE(dev), i,
+                           qdev_get_gpio_in(vms->gic, irq + i));
+        gpex_set_irq_num(GPEX_HOST(dev), i, irq + i);
+    }
+#endif
+
+    pci = PCI_HOST_BRIDGE(dev);
+   /*  pci->bypass_iommu = vms->default_bus_bypass_iommu; */
+    bus = pci->bus;
+    if (bus) {
+        for (i = 0; i < nb_nics; i++) {
+            NICInfo *nd = &nd_table[i];
+
+            if (!nd->model) {
+                nd->model = g_strdup("virtio");
+            }
+
+            pci_nic_init_nofail(nd, pci->bus, nd->model, NULL);
+        }
+    }
+}
 
 static void s32g_vnp_rdb2_init(MachineState *machine)
 {
@@ -46,18 +111,23 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
         exit(1);
     }
 
+#if 0
     /* Only allow Cortex-A53 for this board */
-    if ((strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-a53")) != 0) && 
+    if ((strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-a53")) != 0) || 
 	(strcmp(machine->cpu_type, ARM_CPU_TYPE_NAME("cortex-m7")) != 0)  ) {
-        error_report("This board can only be used with cortex-a53 or cortex-m7 CPU");
+        error_report("This board can only be used with cortex-a53 or cortex-m7 CPU (%s)", machine->cpu_type);
         exit(1);
     }
+#endif
 
     s32g2_st = S32G2(object_new(TYPE_S32G2));
     object_property_add_child(OBJECT(machine), "soc", OBJECT(s32g2_st));
     object_unref(OBJECT(s32g2_st));
 
     atwilc = ATWILC1000(object_new(TYPE_ATWILC1000));
+    machine->smp.max_cpus = 7;
+
+    create_pcie(machine, s32g2_st->bus);
 #if 0
     object_property_add_child(OBJECT(machine), "wifi", OBJECT(atwilc));
     object_unref(OBJECT(atwilc));
@@ -133,8 +203,8 @@ static void s32g_vnp_rdb2_machine_init(MachineClass *mc)
     mc->block_default_type = IF_SD;
     mc->units_per_default_bus = 1;
     mc->min_cpus = S32G2_NUM_CPUS;
-    mc->max_cpus = S32G2_NUM_CPUS;
-    mc->default_cpus = S32G2_NUM_CPUS;
+    mc->max_cpus = S32G2_NUM_CPUS + 3; // Plus 3 cortex-m7
+    mc->default_cpus = S32G2_NUM_CPUS + 3;
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-a53");
     mc->default_ram_size = 2 * GiB;
     mc->default_ram_id = "s32g_vnp_rdb2.ram";
