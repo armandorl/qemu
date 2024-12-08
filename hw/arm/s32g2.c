@@ -244,6 +244,7 @@ struct S32G2Unimplemented {
     { "EDMA1CHAN", 0x40248000, 128 * KiB },
     { "I2C4",      0x402DC000, 4 * KiB },
     { "ADC_1",     0x402E8000, 4 * KiB },
+    { "SDHC",      0x402F0000, 4 * KiB },
     { "FCCU",      0x4030C000, 12 * KiB }, /* Fault collection and control unit */
 #if 0
     { "SRC",       0x4007C000, 12 * KiB }, /* Src control registers (i.e. OS timer tick source)*/
@@ -325,6 +326,68 @@ typedef struct s32g2_app_img
     uint32_t ram_entry;
     uint32_t length;
 } s32g2_app_img_t;
+
+// FIP image
+#define   _UUID_NODE_LEN          6
+typedef struct uuid {
+        uint8_t         time_low[4];
+        uint8_t         time_mid[2];
+        uint8_t         time_hi_and_version[2];
+        uint8_t         clock_seq_hi_and_reserved;
+        uint8_t         clock_seq_low;
+        uint8_t         node[_UUID_NODE_LEN];
+} uuid_t;
+typedef struct fip_toc_header {
+        uint32_t        name;
+        uint32_t        serial_number;
+        uint64_t        flags;
+} fip_toc_header_t;
+
+typedef struct fip_toc_entry {
+        uuid_t          uuid;
+        uint64_t        offset_address;
+        uint64_t        size;
+        uint64_t        flags;
+} fip_toc_entry_t;
+
+/* Return 0 for equal uuids. */
+static inline int compare_uuids(const uuid_t *uuid1, const uuid_t *uuid2)
+{
+        return memcmp(uuid1, uuid2, sizeof(uuid_t));
+}
+
+#define FIP_HEADER_SIZE           (0x200)
+static void set_fip_images_size(uint32_t* base, uint32_t* entry_offset)
+{
+	static const uuid_t uuid_null = { {0} };
+        uintptr_t fip_header = (uintptr_t) base;
+        fip_toc_header_t *toc_header = (fip_toc_header_t *)fip_header;
+        uint8_t *buf_end = (uint8_t *)(fip_header + FIP_HEADER_SIZE);
+        fip_toc_entry_t *toc_entry = (fip_toc_entry_t *)(toc_header + 1);
+
+	if(toc_header->name != 0xAA640001)
+	{
+		printf("Toc header is not valid! 0x%08x\n", toc_header->name);
+		return;
+	}
+
+	printf("Header is valid, adding entries...\n");
+        while ((uint8_t *)toc_entry < buf_end) {
+                if (compare_uuids(&toc_entry->uuid, &uuid_null) == 0)
+		{
+			printf("Null UUID\n");
+                        break;
+		}
+		if(*entry_offset == 0) *entry_offset = (uint32_t)toc_entry->offset_address;
+		printf("Image offset 0x%08x size 0x%08x\n", (uint32_t)toc_entry->offset_address, (uint32_t)toc_entry->size );
+#if 0
+                set_image_spec(&toc_entry->uuid, toc_entry->size,
+                               toc_entry->offset_address);
+#endif
+                toc_entry++;
+        }
+}
+
 
 static s32g2_ivt_t s32g2_ivt = {0};
 static s32g2_boot_cfg_t s32g2_boot_cfg = {0};
@@ -419,12 +482,43 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 		    printf("%d: 0x%08x\n", i, ptr[i]);
     }
 #endif
+    if(s32g2_boot_cfg.boot_target!=S32G2_CORTEX_A53)
+    {
+	// if we start on cortex M skip to the ATF code that I know is here
+        ptr=(uint32_t*)&buffer[0x200000];
+        printf("FIP header name=0x%08x\n", ptr[0x40 / 4]);
+        printf("FIP header serial number=0x%08x\n", ptr[0x44 / 4]);
+
+
+	printf("Uboot header 0x%08x\n", ptr[0]);
+	entry_offset = 0;
+        set_fip_images_size(&ptr[0x40 / 4], &entry_offset);
+	printf("Uboot entry offset 0x%08x\n", ptr[1]);
+	s32g2_app_img.ram_start = ptr[1];
+	app_code = (uint8_t*)&ptr[(0x40 / 4)];
+        *code_entry = ptr[2];
+	printf("Uboot entry 0x%08x\n", (unsigned int)*code_entry);
+        s32g2_app_img.length = ptr[3];
+	printf("Uboot size 0x%08x\n", s32g2_app_img.length);
+    }
+
+    /* MemoryRegion *rom_add_blob(const char *name, const void *blob, size_t len,
+                           size_t max_len, hwaddr addr,
+                           const char *fw_file_name,
+                           FWCfgCallback fw_callback,
+                           void *callback_opaque, AddressSpace *as,
+                           bool read_only); */
+
     rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length + entry_offset,
                   s32g2_app_img.length + entry_offset, s32g2_app_img.ram_start,
                   NULL, NULL, NULL, NULL, false);
+#if 1
     rom_add_blob("qspi.bootrom", buffer, rom_size,
                   rom_size, 0,
                   NULL, NULL, NULL, NULL, false);
+#endif
+
+
 }
 
 

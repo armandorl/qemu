@@ -29,7 +29,7 @@
 #include "hw/misc/s32g2/pit-module.h"
 #include "hw/qdev-properties.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_TCTRL5=	0x158,

@@ -617,6 +617,11 @@
 			"description": "QSPI Module",
 			"helpers": "",
 			"registers": {
+				"DLLCRA" : {
+					"offset": "0x60",
+					"reset": "0x01200000",
+					"action":"if((val&0x1)==0)PERFORM_WRITE(REG_DLLSR, PERFORM_READ(REG_DLLSR) | BIT(14));"
+				},
 				"DLLSR" : {
 					"offset": "0x12C",
 					"reset": "0x80008000",
