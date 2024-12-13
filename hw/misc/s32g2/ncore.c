@@ -70,6 +70,7 @@ static void s32g2_ncore_write(void *opaque, hwaddr offset,
 		return;
 	}
 
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 	switch (offset) {
 
 
@@ -78,7 +79,6 @@ static void s32g2_ncore_write(void *opaque, hwaddr offset,
 			s->regs[idx] = (uint32_t) val;
 			return;
 	}
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_ncore_ops = {

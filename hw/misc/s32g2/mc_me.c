@@ -37,6 +37,7 @@ enum {
 	REG_PRTN0_PUPD=	0x104,
 	REG_PRTN0_STAT=	0x108,
 	REG_PRTN0_COFB0_STAT=	0x110,
+	REG_PRTN0_COFB0_CLKEN=	0x130,
 	REG_PRTN1_STAT=	0x308,
 	REG_PRTN1_CORE0_STAT=	0x348,
 	REG_PRTN1_CORE1_PUPD=	0x364,
@@ -86,7 +87,7 @@ static void trigger_hardware_init(void* opaque){
 
 	PERFORM_WRITE(REG_PRTN0_PUPD, 0);
 
-	PERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);
+	PERFORM_WRITE(REG_PRTN0_COFB0_STAT, PERFORM_READ(REG_PRTN0_COFB0_CLKEN));
 
 	x=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);
 
@@ -132,6 +133,7 @@ static void s32g2_mc_me_write(void *opaque, hwaddr offset,
 		return;
 	}
 
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 	switch (offset) {
 
 		case REG_CTRL_KEY:
@@ -145,6 +147,10 @@ static void s32g2_mc_me_write(void *opaque, hwaddr offset,
 			return;
 		case REG_PRTN0_STAT:
 			return;
+		case REG_PRTN0_COFB0_CLKEN:
+			PERFORM_WRITE(REG_PRTN0_COFB0_CLKEN, val);
+			PERFORM_WRITE(REG_PRTN0_COFB0_STAT, val);
+			;			break;
 		case REG_PRTN1_STAT:
 			return;
 		case REG_PRTN1_CORE0_STAT:
@@ -192,7 +198,6 @@ static void s32g2_mc_me_write(void *opaque, hwaddr offset,
 			s->regs[idx] = (uint32_t) val;
 			return;
 	}
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_mc_me_ops = {
@@ -217,6 +222,7 @@ static void s32g2_mc_me_reset(DeviceState *dev)
 	PERFORM_WRITE(REG_PRTN0_PUPD,0);
 	PERFORM_WRITE(REG_PRTN0_STAT,0x1);
 	PERFORM_WRITE(REG_PRTN0_COFB0_STAT,0);
+	PERFORM_WRITE(REG_PRTN0_COFB0_CLKEN,0);
 	PERFORM_WRITE(REG_PRTN1_STAT,0x1);
 	PERFORM_WRITE(REG_PRTN1_CORE0_STAT,0x1);
 	PERFORM_WRITE(REG_PRTN1_CORE1_PUPD,0x0);

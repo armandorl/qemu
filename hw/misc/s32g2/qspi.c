@@ -31,7 +31,21 @@
 static int debug=0;
 
 enum {
+	REG_MCR=	0,
+	REG_DLLCRA=	0x60,
 	REG_DLLSR=	0x12C,
+	REG_TBSR=	0x150,
+	REG_RBDR0=	0x200,
+	REG_RBDR1=	0x204,
+	REG_RBDR2=	0x208,
+	REG_LUTREG0=	0x428,
+	REG_LUTREG1=	0x42C,
+	REG_LUTREG2=	0x430,
+	REG_LUTREG3=	0x434,
+	REG_LUTREG4=	0x43C,
+	REG_LUTREG5=	0x440,
+	REG_LUTREG6=	0x444,
+	REG_LUTREG7=	0x448,
 };
 
 
@@ -39,6 +53,28 @@ enum {
 #define PERFORM_READ(reg)         s->regs[REG_INDEX(reg)] 
 #define PERFORM_WRITE(reg, val)   s->regs[REG_INDEX(reg)] = val
 
+void process_lut(void* opaque,unsigned int value);
+
+void debug_lut(unsigned int value);
+void process_lut(void* opaque,unsigned int value) {
+	S32G2qspiState *s = S32G2_QSPI(opaque);
+
+	if(debug) debug_lut(value);
+
+	if( value == 0x1c06049f ){
+		PERFORM_WRITE(REG_RBDR0, 0x003A81C2);
+	}
+
+	if( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16);
+}
+
+void debug_lut(unsigned int value) {
+	printf("Value=0x%x\n", value);
+
+	printf("Instruction 1=%d op=0x%x\n",((value>>26)&0x3F), (value>>16)&0xFF);
+
+	printf("Instruction 0=%d op=0x%x\n",((value>>10)&0x3F), (value&0xFF));
+}
 
 
 static uint64_t s32g2_qspi_read(void *opaque, hwaddr offset,
@@ -70,17 +106,65 @@ static void s32g2_qspi_write(void *opaque, hwaddr offset,
 		return;
 	}
 
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 	switch (offset) {
 
+		case REG_MCR:
+			PERFORM_WRITE(REG_MCR, val);
+			if((val&BIT(11))==BIT(11)) { PERFORM_WRITE(REG_TBSR, 0);}
+			;			break;
+		case REG_DLLCRA:
+			PERFORM_WRITE(REG_DLLCRA, val);
+			if((val&0x1)==0)PERFORM_WRITE(REG_DLLSR, PERFORM_READ(REG_DLLSR) | BIT(14));
+			;			break;
 		case REG_DLLSR:
 			return;
+		case REG_TBSR:
+			return;
+		case REG_RBDR0:
+			return;
+		case REG_RBDR1:
+			return;
+		case REG_RBDR2:
+			return;
+		case REG_LUTREG0:
+			PERFORM_WRITE(REG_LUTREG0, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG1:
+			PERFORM_WRITE(REG_LUTREG1, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG2:
+			PERFORM_WRITE(REG_LUTREG2, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG3:
+			PERFORM_WRITE(REG_LUTREG3, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG4:
+			PERFORM_WRITE(REG_LUTREG4, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG5:
+			PERFORM_WRITE(REG_LUTREG5, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG6:
+			PERFORM_WRITE(REG_LUTREG6, val);
+			process_lut(s, val);
+			;			break;
+		case REG_LUTREG7:
+			PERFORM_WRITE(REG_LUTREG7, val);
+			process_lut(s, val);
+			;			break;
 
 		default:
 			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 			s->regs[idx] = (uint32_t) val;
 			return;
 	}
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_qspi_ops = {
@@ -99,7 +183,21 @@ static void s32g2_qspi_reset(DeviceState *dev)
 	S32G2qspiState *s = S32G2_QSPI(dev); 
 
 	/* Set default values for registers */
+	PERFORM_WRITE(REG_MCR,0);
+	PERFORM_WRITE(REG_DLLCRA,0x01200000);
 	PERFORM_WRITE(REG_DLLSR,0x80008000);
+	PERFORM_WRITE(REG_TBSR,0);
+	PERFORM_WRITE(REG_RBDR0,0);
+	PERFORM_WRITE(REG_RBDR1,0);
+	PERFORM_WRITE(REG_RBDR2,0);
+	PERFORM_WRITE(REG_LUTREG0,0);
+	PERFORM_WRITE(REG_LUTREG1,0);
+	PERFORM_WRITE(REG_LUTREG2,0);
+	PERFORM_WRITE(REG_LUTREG3,0);
+	PERFORM_WRITE(REG_LUTREG4,0);
+	PERFORM_WRITE(REG_LUTREG5,0);
+	PERFORM_WRITE(REG_LUTREG6,0);
+	PERFORM_WRITE(REG_LUTREG7,0);
 
 }
 

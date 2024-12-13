@@ -254,6 +254,9 @@ struct S32G2Unimplemented {
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 },
     { "SERDES0",   0x40400000, 1 * MiB },
+#if 0
+    { "PFE",       0x46000000, 16 * MiB },
+#endif
     { "LLCE",      0x43000000, 16 * MiB }
 
 };

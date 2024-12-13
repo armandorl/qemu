@@ -454,7 +454,7 @@
 			"name": "mc_me",
 			"offset" : "0x40088000",
 			"description": "Mode Entry Module",
-			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);\nx=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);\nPERFORM_WRITE(REG_PRTN0_STAT, x);\nPERFORM_WRITE(REG_PRTN0_PUPD, 0);\nPERFORM_WRITE(REG_PRTN0_COFB0_STAT, 0xFFFFFFFF);\nx=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);\nPERFORM_WRITE(REG_PRTN2_STAT, x);\nPERFORM_WRITE(REG_PRTN2_PUPD, 0);\nPERFORM_WRITE(REG_PRTN2_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
+			"helpers": "static unsigned int conf_control=0;\nstatic QEMUTimer timer1;\nstatic void trigger_hardware_init(void* opaque){\nS32G2mc_meState *s = S32G2_MC_ME(opaque);\nunsigned int x=0;\nconf_control=0;\nx=PERFORM_READ(REG_PRTN3_PUPD) & PERFORM_READ(REG_PRTN3_PCONF);\nPERFORM_WRITE(REG_PRTN3_STAT, x);\nPERFORM_WRITE(REG_PRTN3_PUPD, 0);\nx=PERFORM_READ(REG_PRTN0_PUPD) & PERFORM_READ(REG_PRTN0_PCONF);\nPERFORM_WRITE(REG_PRTN0_STAT, x);\nPERFORM_WRITE(REG_PRTN0_PUPD, 0);\nPERFORM_WRITE(REG_PRTN0_COFB0_STAT, PERFORM_READ(REG_PRTN0_COFB0_CLKEN));\nx=PERFORM_READ(REG_PRTN2_PUPD) & PERFORM_READ(REG_PRTN2_PCONF);\nPERFORM_WRITE(REG_PRTN2_STAT, x);\nPERFORM_WRITE(REG_PRTN2_PUPD, 0);\nPERFORM_WRITE(REG_PRTN2_COFB0_STAT, 0xFFFFFFFF);timer_del(&timer1);\ntimer_deinit(&timer1);\n}\n",
 			"registers": {
 				"CTRL_KEY" : {
 					"offset": "0x0",
@@ -482,6 +482,11 @@
 				"PRTN0_COFB0_STAT": {
 					"offset": "0x110",
 					"reset": "0"
+				},
+				"PRTN0_COFB0_CLKEN": {
+					"offset": "0x130",
+					"reset": "0",
+					"action": "PERFORM_WRITE(REG_PRTN0_COFB0_STAT, val);"
 				},
 				"PRTN1_STAT" : {
 					"offset": "0x308",
@@ -615,8 +620,13 @@
 			"name": "qspi",
 			"offset" : "0x40134000",
 			"description": "QSPI Module",
-			"helpers": "",
+			"helpers": "void process_lut(void* opaque,unsigned int value);\nvoid debug_lut(unsigned int value);void process_lut(void* opaque,unsigned int value) { S32G2qspiState *s = S32G2_QSPI(opaque);\nif(debug) debug_lut(value);\nif( value == 0x1c06049f ){PERFORM_WRITE(REG_RBDR0, 0x003A81C2);}\nif( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16); }\nvoid debug_lut(unsigned int value) { printf(\"Value=0x%x\\n\", value);\nprintf(\"Instruction 1=%d op=0x%x\\n\",((value>>26)&0x3F), (value>>16)&0xFF);\nprintf(\"Instruction 0=%d op=0x%x\\n\",((value>>10)&0x3F), (value&0xFF));}",
 			"registers": {
+				"MCR" : {
+					"offset": "0",
+					"reset": "0",
+					"action":"if((val&BIT(11))==BIT(11)) { PERFORM_WRITE(REG_TBSR, 0);}"
+				},
 				"DLLCRA" : {
 					"offset": "0x60",
 					"reset": "0x01200000",
@@ -626,6 +636,66 @@
 					"offset": "0x12C",
 					"reset": "0x80008000",
 					"action":"ignore"
+				},
+				"TBSR" : {
+					"offset": "0x150",
+					"reset": "0",
+					"action":"ignore"
+				},
+				"RBDR0" : {
+					"offset": "0x200",
+					"reset": "0",
+					"action":"ignore"
+				},
+				"RBDR1" : {
+					"offset": "0x204",
+					"reset": "0",
+					"action":"ignore"
+				},
+				"RBDR2" : {
+					"offset": "0x208",
+					"reset": "0",
+					"action":"ignore"
+				},
+				"LUTREG0" : {
+					"offset": "0x428",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG1" : {
+					"offset": "0x42C",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG2" : {
+					"offset": "0x430",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG3" : {
+					"offset": "0x434",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG4" : {
+					"offset": "0x43C",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG5" : {
+					"offset": "0x440",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG6" : {
+					"offset": "0x444",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG7" : {
+					"offset": "0x448",
+					"reset": "0",
+					"action":"process_lut(s, val);"
 				}
 
 			},

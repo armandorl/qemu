@@ -28,7 +28,7 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/mc_rgm.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_DES=	0x0,
@@ -55,35 +55,23 @@ static void trigger_hardware_init(void* opaque){
 	S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
 	uint32_t tmp_event=event;
 	uint32_t tmp = PERFORM_READ(REG_PRST1);
-	if(tmp_event && ((tmp_event&tmp)==0))
-	{
-		PERFORM_WRITE(REG_PSTAT1,  PERFORM_READ(REG_PSTAT1) & ~(event&0x1F));
-	}
-	else
-	{
-		PERFORM_WRITE(REG_PSTAT1,  PERFORM_READ(REG_PSTAT1) | (tmp&0x1F));
-	}
+	PERFORM_WRITE(REG_PSTAT1,  PERFORM_READ(REG_PSTAT1) | (tmp&0x1F));
 	timer_del(&timer1);
 	timer_deinit(&timer1);
 	CPUState *cs;
-	if(debug)printf("Trigger called event=0x%x tmp=0x%x\n", tmp_event, tmp);
 	for (cs = first_cpu;
 			cs;
 			cs = CPU_NEXT(cs)){
-		if(debug)printf("Trigger loop event=0x%x tmp=0x%x\n", tmp_event, tmp);
 		if(tmp_event & BIT(1)){
 			if(tmp & BIT(1)){
-				if(debug)printf("Halted\n");
 				qatomic_set(&cs->halted, true);
 			}
 			else {
-				if(debug)printf("Continue\n");
 				qatomic_set(&cs->halted, false);
-				qemu_cpu_kick(cs);
 			}
+			tmp=tmp>>1;
+			tmp_event=tmp_event>>1;
 		}
-		tmp=tmp>>1;
-		tmp_event=tmp_event>>1;
 	}
 }
 
@@ -117,6 +105,7 @@ static void s32g2_mc_rgm_write(void *opaque, hwaddr offset,
 		return;
 	}
 
+	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 	switch (offset) {
 
 		case REG_PRST0:
@@ -125,16 +114,8 @@ static void s32g2_mc_rgm_write(void *opaque, hwaddr offset,
 			;			break;
 		case REG_PRST1:
 			PERFORM_WRITE(REG_PRST1, val);
-			PERFORM_WRITE(REG_PRST1, val&0x1F); 
-			event = (val&0x1F)^(prev_rst1); 
-			prev_rst1=val;
-			if(debug)printf("PRST1 val=0x%lx event=0x%x\n", val, event);
-			if(event && ((event&val)==0)) 
-			{ 
-				if(debug)printf("Timer started\n");
-				timer_init_us(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
-				timer_mod(&timer1, qemu_clock_get_us(QEMU_CLOCK_VIRTUAL) + 1000);
-			}
+			PERFORM_WRITE(REG_PRST1, val&0x1F); event = (val&0x1F)^(prev_rst1); if(event & ((event&val)==0)) { timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
+				timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}
 			;			break;
 		case REG_PRST2:
 			PERFORM_WRITE(REG_PRST2, val);
@@ -158,7 +139,6 @@ static void s32g2_mc_rgm_write(void *opaque, hwaddr offset,
 			s->regs[idx] = (uint32_t) val;
 			return;
 	}
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
 }
 
 static const MemoryRegionOps s32g2_mc_rgm_ops = {
