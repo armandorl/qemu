@@ -395,7 +395,7 @@ static void set_fip_images_size(uint32_t* base, uint32_t* entry_offset)
 static s32g2_ivt_t s32g2_ivt = {0};
 static s32g2_boot_cfg_t s32g2_boot_cfg = {0};
 static s32g2_app_img_t s32g2_app_img = {0};
-void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
+void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, uint8_t* cpu_type, int8_t** code_block)
 {
     const int64_t rom_size = 64 * MiB;
     const int64_t rom_offset = 0 * KiB;
@@ -485,6 +485,7 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 		    printf("%d: 0x%08x\n", i, ptr[i]);
     }
 #endif
+    *cpu_type=s32g2_boot_cfg.boot_target;
     if(s32g2_boot_cfg.boot_target!=S32G2_CORTEX_A53)
     {
 	// if we start on cortex M skip to the ATF code that I know is here
@@ -497,6 +498,8 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 	entry_offset = 0;
         set_fip_images_size(&ptr[0x40 / 4], &entry_offset);
 	printf("Uboot entry offset 0x%08x\n", ptr[1]);
+	entry_offset += 0x200040; /* FOTA side A firmware offset + APP header 0x40 */
+	printf("FIP   entry offset 0x%08x\n", entry_offset);
 	s32g2_app_img.ram_start = ptr[1];
 	app_code = (uint8_t*)&ptr[(0x40 / 4)];
         *code_entry = ptr[2];
@@ -528,7 +531,7 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry)
 static void s32g2_init(Object *obj)
 {
     S32G2State *s = S32G2(obj);
-#ifdef ARMV6_CONTAINED
+#if 0
     DeviceState *armv7m;
 #endif
     s->memmap = s32g2_memmap;
@@ -538,7 +541,7 @@ static void s32g2_init(Object *obj)
                                 ARM_CPU_TYPE_NAME("cortex-a53"));
     }
 
-#ifdef ARMV6_CONTAINED
+#if 0
     object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
     s->m3clk = qdev_init_clock_in(DEVICE(obj), "m3clk", NULL, NULL, 0);
     s->refclk = qdev_init_clock_in(DEVICE(obj), "refclk", NULL, NULL, 0);
@@ -675,7 +678,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
         qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
     }
 
-#ifdef ARMV6_CONTAINED
+#if 0
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal)) {
         return;
     }

@@ -299,6 +299,6 @@ struct S32G2State {
  * @s: Allwinner H3 state object pointer
  * @blk: Block backend device object pointer
  */
-void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry);
+void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, uint8_t* cpu_type, int8_t** code_block);
 
 #endif /* HW_ARM_S32G2_H */

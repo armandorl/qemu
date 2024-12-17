@@ -96,6 +96,8 @@ static void create_pcie(MachineState *ms, PCIBus *bus)
     }
 }
 
+#define S32G2_CORTEX_M7   0
+#define S32G2_CORTEX_A53  1
 static void s32g_vnp_rdb2_init(MachineState *machine)
 {
     S32G2State *s32g2_st;
@@ -104,6 +106,8 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
     BlockBackend *blk;
     BusState *bus;
     DeviceState *carddev;
+    int8_t* code_block;
+    uint8_t cpu_type;
 
     /* BIOS is not supported by this board */
     if (machine->firmware) {
@@ -181,14 +185,24 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
     /* Load target kernel or start using BootROM */
     if (!machine->kernel_filename && blk && blk_is_available(blk)) {
         /* Use Boot ROM to copy data from SD card to SRAM */
-        s32g2_bootrom_setup(s32g2_st, blk, &entry);
+        s32g2_bootrom_setup(s32g2_st, blk, &entry, &cpu_type, &code_block);
     }
     s32g_vnp_rdb2_binfo.loader_start = entry;
     s32g_vnp_rdb2_binfo.ram_size = machine->ram_size;
     s32g_vnp_rdb2_binfo.psci_conduit = QEMU_PSCI_CONDUIT_SMC;
     s32g_vnp_rdb2_binfo.firmware_loaded = 1;
     s32g_vnp_rdb2_binfo.entry = entry;
-    arm_load_kernel(ARM_CPU(first_cpu), machine, &s32g_vnp_rdb2_binfo);
+#if 0
+    if(cpu_type == S32G2_CORTEX_M7)
+    {
+        armv7m_load_kernel(s32g2_st->armv7m.cpu, (const char*)code_block,
+                        entry, 0x200000);
+    }
+    else
+#endif
+    {   /* Cortex-A */
+    	arm_load_kernel(ARM_CPU(first_cpu), machine, &s32g_vnp_rdb2_binfo);
+    }
     
     CPUState *cs = first_cpu;
     for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
