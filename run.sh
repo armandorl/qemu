@@ -1,3 +1,4 @@
+set -x
 PRECOMMAND=""
 DEBUG=""
 if [ "$1" == "" ];then
@@ -7,7 +8,7 @@ else
     IMAGE=$1
     echo Using $IMAGE
 fi
-COMMAND="./build/qemu-system-aarch64 -machine s32g_vnp_rdb2 -sd $IMAGE  -serial mon:stdio  -nographic"
+COMMAND="./build/qemu-system-aarch64 -machine s32g_vnp_rdb2 -sd $IMAGE -serial mon:stdio  -serial pipe:/tmp/guest  -nographic"
 ARG1=$2
 
 if [ "$ARG1" == "qgdb" ];

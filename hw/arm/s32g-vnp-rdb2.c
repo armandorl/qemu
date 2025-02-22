@@ -195,19 +195,25 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
 #if 0
     if(cpu_type == S32G2_CORTEX_M7)
     {
+#if 0
         armv7m_load_kernel(s32g2_st->armv7m.cpu, (const char*)code_block,
                         entry, 0x200000);
+#else
+        armv7m_load_kernel(s32g2_st->armv7m.cpu, "/mnt/c/tftpboot/rtd_base.elf",
+                        0, 0x40000000);
+#endif
     }
     else
 #endif
     {   /* Cortex-A */
     	arm_load_kernel(ARM_CPU(first_cpu), machine, &s32g_vnp_rdb2_binfo);
     }
-    
+#if 1 
     CPUState *cs = first_cpu;
     for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
         ARM_CPU(cs)->env.boot_info = &s32g_vnp_rdb2_binfo;
     }
+#endif
 }
 
 static void s32g_vnp_rdb2_machine_init(MachineClass *mc)
@@ -219,7 +225,11 @@ static void s32g_vnp_rdb2_machine_init(MachineClass *mc)
     mc->min_cpus = S32G2_NUM_CPUS;
     mc->max_cpus = S32G2_NUM_CPUS + 3; // Plus 3 cortex-m7
     mc->default_cpus = S32G2_NUM_CPUS + 3;
+#if 1
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-a53");
+#else
+    mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-m7");
+#endif
     mc->default_ram_size = 2 * GiB;
     mc->default_ram_id = "s32g_vnp_rdb2.ram";
 }

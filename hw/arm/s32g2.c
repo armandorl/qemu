@@ -87,9 +87,14 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_SPI0]  = 0x401d4000,
     [S32G2_DEV_SPI1]  = 0x401d8000,
     [S32G2_DEV_SPI2]  = 0x401dc000,
+    [S32G2_DEV_SPI3]  = 0x402c8000,
+    [S32G2_DEV_SPI4]  = 0x402cc000,
+    [S32G2_DEV_SPI5]  = 0x402d0000,
+#if 0
     [S32G2_DEV_I2C0]  = 0x401E4000,
     [S32G2_DEV_I2C1]  = 0x401E8000,
     [S32G2_DEV_I2C2]  = 0x401Ec000,
+#endif
     [S32G2_DEV_ADC0]  = 0x401F8000,
     [S32G2_DEV_MC_CGM]  = 0x40030000,
     [S32G2_DEV_MC_CGM1]  = 0x40034000,
@@ -211,11 +216,16 @@ struct S32G2Unimplemented {
     { "RTC",       0x40060000, 4 * KiB },
 #endif
     { "OCOTP",     0x400A4000, 4 * KiB }, /* On chip One Time Programmable - eFuses*/
-#if 0
+#if 1
+    { "TMU",       0x400A8000, 12 * KiB },
     { "STM0",      0x40110000, 12 * KiB },
     { "STM1",      0x40120000, 12 * KiB },
     { "STM2",      0x40124000, 12 * KiB },
     { "STM3",      0x40128000, 12 * KiB },
+    { "STM4",      0x4021c000, 12 * KiB },
+    { "STM5",      0x40220000, 12 * KiB },
+    { "STM6",      0x40224000, 12 * KiB },
+    { "STM7",      0x40228000, 12 * KiB },
 #endif
     { "DMAMUX0",   0x4012C000, 12 * KiB },
     { "DMAMUX1",   0x40130000, 12 * KiB },
@@ -242,10 +252,15 @@ struct S32G2Unimplemented {
     { "DMAMUX3",   0x40230000, 12 * KiB },
     { "EDMA1",     0x40244000, 12 * KiB },
     { "EDMA1CHAN", 0x40248000, 128 * KiB },
+    { "I2C0",      0x401E4000, 4 * KiB },
+    { "I2C1",      0x401E8000, 4 * KiB },
+    { "I2C2",      0x401Ec000, 4 * KiB },
+    { "I2C3",      0x402D8000, 4 * KiB },
     { "I2C4",      0x402DC000, 4 * KiB },
     { "ADC_1",     0x402E8000, 4 * KiB },
     { "SDHC",      0x402F0000, 4 * KiB },
     { "FCCU",      0x4030C000, 12 * KiB }, /* Fault collection and control unit */
+    { "GMAC",      0x4033c000, 20 * KiB },
 #if 0
     { "SRC",       0x4007C000, 12 * KiB }, /* Src control registers (i.e. OS timer tick source)*/
 #endif
@@ -254,6 +269,7 @@ struct S32G2Unimplemented {
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 },
     { "SERDES0",   0x40400000, 1 * MiB },
+    { "USB",       0x44064000, 4 * KiB },
 #if 0
     { "PFE",       0x46000000, 16 * MiB },
 #endif
@@ -486,19 +502,21 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
     }
 #endif
     *cpu_type=s32g2_boot_cfg.boot_target;
+#if 1
     if(s32g2_boot_cfg.boot_target!=S32G2_CORTEX_A53)
     {
+#if 1 /* If you want to skip M7 execution enable this */
 	// if we start on cortex M skip to the ATF code that I know is here
-        ptr=(uint32_t*)&buffer[0x200000];
+        ptr=(uint32_t*)&buffer[0x400000];
         printf("FIP header name=0x%08x\n", ptr[0x40 / 4]);
         printf("FIP header serial number=0x%08x\n", ptr[0x44 / 4]);
-
+#endif
 
 	printf("Uboot header 0x%08x\n", ptr[0]);
 	entry_offset = 0;
         set_fip_images_size(&ptr[0x40 / 4], &entry_offset);
 	printf("Uboot entry offset 0x%08x\n", ptr[1]);
-	entry_offset += 0x200040; /* FOTA side A firmware offset + APP header 0x40 */
+	entry_offset += 0x400040; /* FOTA side B firmware offset + APP header 0x40 */
 	printf("FIP   entry offset 0x%08x\n", entry_offset);
 	s32g2_app_img.ram_start = ptr[1];
 	app_code = (uint8_t*)&ptr[(0x40 / 4)];
@@ -507,6 +525,7 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
         s32g2_app_img.length = ptr[3];
 	printf("Uboot size 0x%08x\n", s32g2_app_img.length);
     }
+#endif
 
     /* MemoryRegion *rom_add_blob(const char *name, const void *blob, size_t len,
                            size_t max_len, hwaddr addr,
@@ -531,15 +550,18 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
 static void s32g2_init(Object *obj)
 {
     S32G2State *s = S32G2(obj);
-#if 0
-    DeviceState *armv7m;
-#endif
     s->memmap = s32g2_memmap;
-
+#if 1
     for (int i = 0; i < S32G2_NUM_CPUS; i++) {
         object_initialize_child(obj, "cpu[*]", &s->cpus[i],
                                 ARM_CPU_TYPE_NAME("cortex-a53"));
     }
+#else
+    for (int i = 0; i < S32G2_NUM_CPUS; i++) {
+        object_initialize_child(obj, "cpu[*]", &s->cpus[i],
+                                ARM_CPU_TYPE_NAME("cortex-m7"));
+    }
+#endif
 
 #if 0
     object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
@@ -556,14 +578,6 @@ static void s32g2_init(Object *obj)
     clock_set_mul_div(s->refclk, 32, 1);
     clock_set_source(s->refclk, s->m3clk);
 
-    armv7m = DEVICE(&s->armv7m);
-    qdev_prop_set_uint32(armv7m, "num-irq", 81);
-    qdev_prop_set_bit(armv7m, "enable-bitband", true);
-    qdev_prop_set_string(armv7m, "cpu-type", "cortex-m7-arm-cpu");
-    qdev_connect_clock_in(armv7m, "cpuclk", s->m3clk);
-    qdev_connect_clock_in(armv7m, "refclk", s->refclk);
-    object_property_set_link(OBJECT(&s->armv7m), "memory",
-                             OBJECT(get_system_memory()), &error_abort);
 
 #endif
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
@@ -653,6 +667,9 @@ static void s32g2_init(Object *obj)
 static void s32g2_realize(DeviceState *dev, Error **errp)
 {
     S32G2State *s = S32G2(dev);
+#if 0
+    DeviceState *armv7m;
+#endif
     unsigned i;
 
     /* CPUs */
@@ -678,11 +695,6 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
         qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
     }
 
-#if 0
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal)) {
-        return;
-    }
-#endif
     /* Generic Interrupt Controller */
     qdev_prop_set_uint32(DEVICE(&s->gic), "num-irq", S32G2_GIC_NUM_SPI + GIC_INTERNAL);
     qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 3);
@@ -754,6 +766,23 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
         qdev_connect_gpio_out_named(cpudev, "pmu-interrupt",
                                     0, qdev_get_gpio_in(DEVICE(&s->gic), ppibase + S32G2_GIC_PPI_PMU));
     }
+
+#if 0
+    /* Setup ARMv7m */
+    armv7m = DEVICE(&s->armv7m);
+    qdev_prop_set_uint32(armv7m, "num-irq", 81);
+    qdev_prop_set_bit(armv7m, "enable-bitband", true);
+    qdev_prop_set_string(armv7m, "cpu-type", "cortex-m7-arm-cpu");
+    qdev_connect_clock_in(armv7m, "cpuclk", s->m3clk);
+    qdev_connect_clock_in(armv7m, "refclk", s->refclk);
+    object_property_set_link(OBJECT(&s->armv7m), "memory",
+                             OBJECT(get_system_memory()), &error_abort);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal)) {
+        return;
+    }
+#else
+//    sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal);
+#endif
     /* Timer */
     sysbus_realize(SYS_BUS_DEVICE(&s->timer), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->timer), 0, s->memmap[S32G2_DEV_PIT]);
