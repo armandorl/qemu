@@ -270,7 +270,7 @@ struct S32G2Unimplemented {
     { "DDRSS3",    0x403D0000, 0x20000 },
     { "SERDES0",   0x40400000, 1 * MiB },
     { "USB",       0x44064000, 4 * KiB },
-#if 0
+#if 1
     { "PFE",       0x46000000, 16 * MiB },
 #endif
     { "LLCE",      0x43000000, 16 * MiB }

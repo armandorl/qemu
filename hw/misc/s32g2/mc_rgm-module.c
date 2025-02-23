@@ -28,7 +28,7 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/mc_rgm.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_DES=	0x0,

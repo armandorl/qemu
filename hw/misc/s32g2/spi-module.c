@@ -29,7 +29,7 @@
 #include "hw/misc/s32g2/spi-module.h"
 #include "hw/misc/s32g2/shmem.h"
 
-static int debug=1;
+static int debug=0;
 
 extern void set_siul2_external_irq(int i);
 
