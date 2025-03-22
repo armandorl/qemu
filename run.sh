@@ -1,24 +1,25 @@
+#!/bin/bash
 set -x
 PRECOMMAND=""
 DEBUG=""
-if [ "$1" == "" ];then
+if [[ "$1" == "" ]];then
     IMAGE="/mnt/c/tftpboot/new_ivt_image.bin"
     echo "Using default $IMAGE"
 else
     IMAGE=$1
     echo Using $IMAGE
 fi
-COMMAND="./build/qemu-system-aarch64 -machine s32g_vnp_rdb2 -sd $IMAGE -serial mon:stdio  -serial pipe:/tmp/guest  -nographic"
+COMMAND="./build/qemu-system-aarch64 -machine s32g_vnp_rdb2 -sd $IMAGE -serial mon:stdio  -nographic  -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device e1000,netdev=net0"
 ARG1=$2
 
-if [ "$ARG1" == "qgdb" ];
+if [[ "$ARG1" == "qgdb" ]];
 then
    rm -f ~/.gdbinit
    cp /media/armandorl/ubuntu/s32g2/arm-trusted-firmware/gdbinit_file ~/.gdbinit
    PRECOMMAND="gdb --args"
 fi
 
-if [ "$ARG1" == "debug" ];
+if [[ "$ARG1" == "debug" ]];
 then
     DEBUG="-S -s"
     rm -f ~/.gdbinit
