@@ -65,6 +65,7 @@
 #include "hw/misc/s32g2/siul2.h"
 #include "hw/misc/s32g2/siul2_1.h"
 #include "hw/misc/s32g2/serdes.h"
+#include "hw/pci-host/designware.h"
 
 
 /**
@@ -173,7 +174,8 @@ enum {
     S32G2_DEV_SIUL2,
     S32G2_DEV_SIUL2_1,
     S32G2_DEV_SERDES0,
-    S32G2_DEV_SERDES1
+    S32G2_DEV_SERDES1,
+    S32G2_DEV_PCIE_DESIGNWARE
 };
 
 /** Total number of CPU cores in the SoC */
@@ -275,7 +277,9 @@ struct S32G2State {
     S32G2hsemuState hsemu1;
     S32G2hsemuState hsemu2;
     S32G2hsemuState hsemu3;
+
     S32G2serdesState serdes0;
+    DesignwarePCIEHost pcie;
     S32G2serdesState serdes1;
 
     PCIBus *bus;

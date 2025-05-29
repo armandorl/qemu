@@ -9,7 +9,9 @@ else
     IMAGE=$1
     echo Using $IMAGE
 fi
-COMMAND="./build/qemu-system-aarch64 -machine s32g_vnp_rdb2 -sd $IMAGE -serial mon:stdio  -nographic  -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device e1000,netdev=net0"
+COMMAND="./build/qemu-system-aarch64 -machine s32g_vnp_rdb2 -sd $IMAGE -serial mon:stdio  -nographic"
+#"  -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device e1000,netdev=net0"
+
 ARG1=$2
 
 if [[ "$ARG1" == "qgdb" ]];

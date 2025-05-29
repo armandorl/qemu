@@ -28,7 +28,7 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/hsemu.h"
 
-static int debug=0;
+static int debug=1;
 
 enum {
 	REG_VER=	0x0,

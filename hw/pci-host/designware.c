@@ -131,8 +131,10 @@ designware_pcie_root_config_read(PCIDevice *d, uint32_t address, int len)
     DesignwarePCIEViewport *viewport =
         designware_pcie_root_get_current_viewport(root);
 
+    address += 0x900; /* Workaround to make access to the ATU without unaligned access segmentation fault */
+    address %= 0x1000;
     uint32_t val;
-
+    printf("designware read access 0x%08x len=%d\n", address, len);
     switch (address) {
     case DESIGNWARE_PCIE_PORT_LINK_CONTROL:
         /*
@@ -304,6 +306,10 @@ static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
     DesignwarePCIEViewport *viewport =
         designware_pcie_root_get_current_viewport(root);
 
+
+    address += 0x900; /* Workaround to make access to the ATU without unaligned access segmentation fault */
+    address %= 0x1000;
+    printf("designware write access 0x%08x=0x%08x, len=%d\n", address, val, len);
     switch (address) {
     case DESIGNWARE_PCIE_PORT_LINK_CONTROL:
     case DESIGNWARE_PCIE_LINK_WIDTH_SPEED_CONTROL:

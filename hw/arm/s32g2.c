@@ -114,6 +114,7 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_WKPU]  =  0x40090000,
     [S32G2_DEV_SIUL2]  =  0x4009C000,
     [S32G2_DEV_QSPI_REGS]  =  0x40134000,
+    [S32G2_DEV_PCIE_DESIGNWARE]  =  0x40460000,
     [S32G2_DEV_SERDES0]  =  0x40480000,
     [S32G2_DEV_LINFLEX0]   = 0x401C8000,
     [S32G2_DEV_LINFLEX1]   = 0x401CC000,
@@ -268,7 +269,9 @@ struct S32G2Unimplemented {
     { "DDRSS1",    0x40390000, 0x20000 },
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 },
+#if 0
     { "SERDES0",   0x40400000, 1 * MiB },
+#endif
     { "USB",       0x44064000, 4 * KiB },
 #if 1
     { "PFE",       0x46000000, 16 * MiB },
@@ -296,6 +299,11 @@ enum {
     S32G2_GIC_SPI_UART2     =  116 - GIC_INTERNAL,
     S32G2_GIC_SPI_SPI0      =  117 - GIC_INTERNAL,
     S32G2_GIC_SPI_SPI1      =  118 - GIC_INTERNAL,
+
+    S32G2_GIC_PCIE_A        =  160 - GIC_INTERNAL,
+    S32G2_GIC_PCIE_B        =  161 - GIC_INTERNAL,
+    S32G2_GIC_PCIE_C        =  162 - GIC_INTERNAL,
+    S32G2_GIC_PCIE_D        =  163 - GIC_INTERNAL,
 #if 0
     S32G2_GIC_SPI_TIMER0    = 101 - GIC_INTERNAL,
     S32G2_GIC_SPI_TIMER1    = 102 - GIC_INTERNAL,
@@ -628,6 +636,7 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "spi4", &s->spi4, TYPE_S32G2_SPI);
     object_initialize_child(obj, "spi5", &s->spi5, TYPE_S32G2_SPI);
     object_initialize_child(obj, "serdes0", &s->serdes0, TYPE_S32G2_SERDES);
+    object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
     object_initialize_child(obj, "serdes1", &s->serdes1, TYPE_S32G2_SERDES);
     object_initialize_child(obj, "periph_pll", &s->periph_pll, TYPE_S32G2_PLL);
     object_initialize_child(obj, "ddr_pll", &s->ddr_pll, TYPE_S32G2_PLL);
@@ -860,6 +869,18 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->serdes0), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->serdes0), 0, s->memmap[S32G2_DEV_SERDES0]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->pcie), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie), 0, s->memmap[S32G2_DEV_PCIE_DESIGNWARE]);
+
+    qemu_irq irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_A);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 0, irq);
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_B);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 1, irq);
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_C);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 2, irq);
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_D);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 3, irq);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->serdes1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->serdes1), 0, s->memmap[S32G2_DEV_SERDES1]);
