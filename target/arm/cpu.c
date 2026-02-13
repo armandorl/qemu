@@ -417,19 +417,24 @@ static void arm_cpu_reset_hold(Object *obj)
         /* Unlike A/R profile, M profile defines the reset LR value */
         env->regs[14] = 0xffffffff;
 
+	printf("init svtor=0x%x\n", cpu->init_svtor);
+	printf("init nsvtor=0x%x\n", cpu->init_nsvtor);
         env->v7m.vecbase[M_REG_S] = cpu->init_svtor & 0xffffff80;
         env->v7m.vecbase[M_REG_NS] = cpu->init_nsvtor & 0xffffff80;
 
         /* Load the initial SP and PC from offset 0 and 4 in the vector table */
         vecbase = env->v7m.vecbase[env->v7m.secure];
+	printf("vecbase=0x%x\n", vecbase);
         rom = rom_ptr_for_as(s->as, vecbase, 8);
         if (rom) {
+	    printf("Loaded from rom\n");
             /* Address zero is covered by ROM which hasn't yet been
              * copied into physical memory.
              */
             initial_msp = ldl_p(rom);
             initial_pc = ldl_p(rom + 4);
         } else {
+	    printf("Not loaded from rom\n");
             /* Address zero not covered by a ROM blob, or the ROM blob
              * is in non-modifiable memory and this is a second reset after
              * it got copied into memory. In the latter case, rom_ptr
@@ -439,6 +444,7 @@ static void arm_cpu_reset_hold(Object *obj)
             initial_pc = ldl_phys(s->as, vecbase + 4);
         }
 
+	printf("Loaded reset SP 0x%x PC 0x%x from vector table\n", initial_msp, initial_pc);
         qemu_log_mask(CPU_LOG_INT,
                       "Loaded reset SP 0x%x PC 0x%x from vector table\n",
                       initial_msp, initial_pc);

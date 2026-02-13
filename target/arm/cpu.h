@@ -2488,6 +2488,8 @@ static inline bool arm_el_is_aa64(CPUARMState *env, int el)
      */
     assert(el >= 1 && el <= 3);
     bool aa64 = arm_feature(env, ARM_FEATURE_AARCH64);
+    //printf("aa64 is=%d\n", aa64);
+
 
     /* The highest exception level is always at the maximum supported
      * register width, and then lower levels have a register width controlled

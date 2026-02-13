@@ -33,6 +33,8 @@ static int debug=1;
 enum {
 	REG_VER=	0x0,
 	REG_PAR=	0x4,
+	REG_FSR=	0x104,
+	REG_GCR=	0x114,
 };
 
 
@@ -78,6 +80,12 @@ static void s32g2_hsemu_write(void *opaque, hwaddr offset,
 			return;
 		case REG_PAR:
 			return;
+		case REG_FSR:
+			return;
+		case REG_GCR:
+			PERFORM_WRITE(REG_GCR, val);
+			PERFORM_WRITE(REG_FSR, PERFORM_READ(REG_FSR) | ((val&BIT(0))==BIT(0))? BIT(24) : val );
+			;			break;
 
 		default:
 			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
@@ -104,6 +112,8 @@ static void s32g2_hsemu_reset(DeviceState *dev)
 	/* Set default values for registers */
 	PERFORM_WRITE(REG_VER,0x0300000F);
 	PERFORM_WRITE(REG_PAR,0x20201010);
+	PERFORM_WRITE(REG_FSR,0x00000000);
+	PERFORM_WRITE(REG_GCR,0x00000000);
 
 }
 

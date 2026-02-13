@@ -216,6 +216,7 @@ struct S32G2Unimplemented {
     { "PLLAcc",    0x40040000, 12 * KiB },
     { "RTC",       0x40060000, 4 * KiB },
 #endif
+    { "HSE_RAM",   0x22c00000, 16 * KiB },
     { "OCOTP",     0x400A4000, 4 * KiB }, /* On chip One Time Programmable - eFuses*/
 #if 1
     { "TMU",       0x400A8000, 12 * KiB },
@@ -315,9 +316,28 @@ enum {
     S32G2_GIC_SIUL2_1       = 242 - GIC_INTERNAL,
 };
 
+/* Shared Processor Interrupts for NVIC */
+enum {
+    S32G2_NVIC_SPI_UART0     =  82,
+    S32G2_NVIC_SPI_UART1     =  83,
+    S32G2_NVIC_SPI_UART2     =  84,
+    S32G2_NVIC_SPI_SPI0      =  85,
+    S32G2_NVIC_SPI_SPI1      =  86,
+
+    S32G2_NVIC_PCIE_A        =  128,
+    S32G2_NVIC_PCIE_B        =  129,
+    S32G2_NVIC_PCIE_C        =  130,
+    S32G2_NVIC_PCIE_D        =  131,
+    S32G2_NVIC_SPI_TIMER0    =  53 ,
+    S32G2_NVIC_SPI_TIMER1    =  54 ,
+    S32G2_NVIC_SPI_MMC0      =  230,
+    S32G2_NVIC_SIUL2_1       =  242,
+};
+
 /* General constants */
 enum {
-    S32G2_GIC_NUM_SPI       = 480
+    S32G2_GIC_NUM_SPI       = 480,
+    S32G2_NVIC_NUM          = 480
 };
 
 
@@ -383,6 +403,7 @@ static inline int compare_uuids(const uuid_t *uuid1, const uuid_t *uuid2)
         return memcmp(uuid1, uuid2, sizeof(uuid_t));
 }
 
+#if 0
 #define FIP_HEADER_SIZE           (0x200)
 static void set_fip_images_size(uint32_t* base, uint32_t* entry_offset)
 {
@@ -414,11 +435,36 @@ static void set_fip_images_size(uint32_t* base, uint32_t* entry_offset)
                 toc_entry++;
         }
 }
-
+#endif
 
 static s32g2_ivt_t s32g2_ivt = {0};
 static s32g2_boot_cfg_t s32g2_boot_cfg = {0};
 static s32g2_app_img_t s32g2_app_img = {0};
+
+/**
+ * Read boot configuration from block device (IVT at offset 0).
+ * Fills s32g2_boot_cfg so SoC init can choose CPU type without recompile.
+ * Call this before creating the S32G2 SoC object when using bootrom.
+ */
+void s32g2_read_boot_config(BlockBackend *blk)
+{
+    const int64_t ivt_size = 64;
+    const int64_t rom_offset = 0;
+    uint32_t boot_config;
+
+    if (!blk || !blk_is_available(blk)) {
+        return;
+    }
+    g_autofree uint8_t *buf = g_new0(uint8_t, ivt_size);
+    if (blk_pread(blk, rom_offset, ivt_size, buf, 0) < 0) {
+        return;
+    }
+    boot_config = ((uint32_t *)buf)[10];
+    s32g2_boot_cfg.sec_boot = (boot_config & 0x00000008) >> 3;
+    s32g2_boot_cfg.watchdog = (boot_config & 0x00000008) >> 2;
+    s32g2_boot_cfg.boot_target = (boot_config & 0x00000003);
+}
+
 void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, uint8_t* cpu_type, int8_t** code_block)
 {
     const int64_t rom_size = 64 * MiB;
@@ -499,9 +545,6 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
     
     printf("Entry offset=0x%08x\n", entry_offset + boot_offset + 0x40 );
 
-    /* app_code += entry_offset;
-    app_code_curr = (uint32_t*)app_code; 
-    printf("First entry code=0x%08x\n", *app_code_curr); */
 #if 0
     for(int i=0; i < 100; i++)
     {
@@ -510,7 +553,7 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
     }
 #endif
     *cpu_type=s32g2_boot_cfg.boot_target;
-#if 1
+#if 0
     if(s32g2_boot_cfg.boot_target!=S32G2_CORTEX_A53)
     {
 #if 1 /* If you want to skip M7 execution enable this */
@@ -550,8 +593,16 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
                   rom_size, 0,
                   NULL, NULL, NULL, NULL, false);
 #endif
+}
 
-
+/**
+ * Return the vector table base for Cortex-M7 (128-byte aligned).
+ * The code is already in guest memory via rom_add_blob in s32g2_bootrom_setup;
+ * the CPU reads initial SP/PC from this address on reset.
+ */
+hwaddr s32g2_get_m7_vecbase(void)
+{
+    return s32g2_app_img.ram_start & 0xffffff80;
 }
 
 
@@ -559,36 +610,40 @@ static void s32g2_init(Object *obj)
 {
     S32G2State *s = S32G2(obj);
     s->memmap = s32g2_memmap;
-#if 1
-    for (int i = 0; i < S32G2_NUM_CPUS; i++) {
-        object_initialize_child(obj, "cpu[*]", &s->cpus[i],
-                                ARM_CPU_TYPE_NAME("cortex-a53"));
-    }
-#else
-    for (int i = 0; i < S32G2_NUM_CPUS; i++) {
-        object_initialize_child(obj, "cpu[*]", &s->cpus[i],
-                                ARM_CPU_TYPE_NAME("cortex-m7"));
-    }
-#endif
 
-#if 0
-    object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
-    s->m3clk = qdev_init_clock_in(DEVICE(obj), "m3clk", NULL, NULL, 0);
-    s->refclk = qdev_init_clock_in(DEVICE(obj), "refclk", NULL, NULL, 0);
     /*
-     * TODO: ideally we should model the SoC SYSTICK_CR register at 0xe0042038,
-     * which allows the guest to program the divisor between the m3clk and
-     * the systick refclk to either /4, /8, /16 or /32, as well as setting
-     * the value the guest can read in the STCALIB register. Currently we
-     * implement the divisor as a fixed /32, which matches the reset value
-     * of SYSTICK_CR.
+     * A53 path: use cortex-a15 (32-bit; cortex-a53 is 64-bit only).
+     * M7 path: use cortex-m7; NVIC is initialized below and wired in realize.
      */
-    clock_set_mul_div(s->refclk, 32, 1);
-    clock_set_source(s->refclk, s->m3clk);
+    const char *cpu_type_name = (s32g2_boot_cfg.boot_target == S32G2_CORTEX_A53)
+            ? ARM_CPU_TYPE_NAME("cortex-a53")
+            : ARM_CPU_TYPE_NAME("cortex-m7");
 
+    int num_cpus = S32G2_NUM_CPUS;
+    if (s32g2_boot_cfg.boot_target == S32G2_CORTEX_M7) {
+        num_cpus = 1;
+    }
 
-#endif
-    object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
+    for (int i = 0; i < num_cpus; i++) {
+        object_initialize_child(obj, "cpu[*]", &s->cpus[i], cpu_type_name);
+    }
+
+    if (s32g2_boot_cfg.boot_target == S32G2_CORTEX_M7) {
+        object_initialize_child(obj, "nvic", &s->nvic, TYPE_NVIC);
+    }
+    else
+    {
+        object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
+    }
+
+    if (s32g2_boot_cfg.boot_target == S32G2_CORTEX_M7) {
+        //object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
+        s->m3clk = qdev_init_clock_in(DEVICE(obj), "m3clk", NULL, NULL, 0);
+        s->refclk = qdev_init_clock_in(DEVICE(obj), "refclk", NULL, NULL, 0);
+        clock_set_mul_div(s->refclk, 32, 1);
+        clock_set_source(s->refclk, s->m3clk);
+    }
+
     object_initialize_child(obj, "timer", &s->timer, TYPE_S32G2_PIT);
 #if 0
     object_property_add_alias(obj, "clk0-freq", OBJECT(&s->timer),
@@ -673,130 +728,113 @@ static void s32g2_init(Object *obj)
 #endif
 }
 
+#define S32G2_NVIC_BASE      0xe000e000
+
 static void s32g2_realize(DeviceState *dev, Error **errp)
 {
     S32G2State *s = S32G2(dev);
-#if 0
-    DeviceState *armv7m;
-#endif
-    unsigned i;
+    unsigned i=0;
+    int num_cpus = S32G2_NUM_CPUS;
+    bool is_m7 = (s32g2_boot_cfg.boot_target == S32G2_CORTEX_M7);
+    DeviceState *devint=NULL;
 
-    /* CPUs */
-    for (i = 0; i < S32G2_NUM_CPUS; i++) {
-
-        /*
-         * Disable secondary CPUs. Guest EL3 firmware will start
-         * them via CPU reset control registers.
-         */
-        qdev_prop_set_bit(DEVICE(&s->cpus[i]), "start-powered-off",
-                          i > 0);
-
-        /* All exception levels required */
-        qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el3", true);
-        qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el2", true);
-
-	/* Set core affinity */
-#if 1
-        object_property_set_int(OBJECT(&s->cpus[i]), "mp-affinity",
-                                arm_cpu_mp_affinity(i, CORES_PER_CLUSTER) , NULL);
-#endif
-        /* Mark realized */
-        qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
+    printf("is m7=%d (%d)\n", is_m7, s32g2_boot_cfg.boot_target);
+    if (is_m7) {
+        num_cpus = 1;
     }
 
-    /* Generic Interrupt Controller */
-    qdev_prop_set_uint32(DEVICE(&s->gic), "num-irq", S32G2_GIC_NUM_SPI + GIC_INTERNAL);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 3);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "num-cpu", S32G2_NUM_CPUS);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "len-redist-region-count", 1);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[0]", 4);
-#if 0
-    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[1]", 2);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[2]", 1);
-    qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[3]", 1);
-#endif
-    qdev_prop_set_bit(DEVICE(&s->gic), "has-security-extensions", true);
-    sysbus_realize(SYS_BUS_DEVICE(&s->gic), &error_fatal);
-
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 0, s->memmap[S32G2_DEV_GIC_DIST]);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 1, s->memmap[S32G2_DEV_GIC_RDIST0]);
-#if 0
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 2, s->memmap[S32G2_DEV_GIC_RDIST1]);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 3, s->memmap[S32G2_DEV_GIC_RDIST2]);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 4, s->memmap[S32G2_DEV_GIC_RDIST3]);
-#endif
-
-    /*
-     * Wire the outputs from each CPU's generic timer and the GICv3
-     * maintenance interrupt signal to the appropriate GIC PPI inputs,
-     * and the GIC's IRQ/FIQ/VIRQ/VFIQ interrupt outputs to the CPU's inputs.
-     */
-    for (i = 0; i < S32G2_NUM_CPUS; i++) {
-        DeviceState *cpudev = DEVICE(&s->cpus[i]);
-	int ppibase = S32G2_GIC_NUM_SPI + (i * GIC_INTERNAL);
-        int irq;
+    if (is_m7) {
+	printf("m7 detected!\n");
         /*
-         * Mapping from the output timer irq lines from the CPU to the
-         * GIC PPI inputs used for this board.
+         * Cortex-M7 path: link SoC NVIC to the single M7 CPU, then realize
+         * CPU then NVIC (order required by armv7m). Map NVIC and connect IRQ.
          */
-        const int timer_irq[] = {
-            [GTIMER_PHYS] = S32G2_GIC_PPI_PHYSTIMER,
-            [GTIMER_VIRT] = S32G2_GIC_PPI_VIRTTIMER,
-            [GTIMER_HYP]  = S32G2_GIC_PPI_HYPTIMER,
-            [GTIMER_SEC]  = S32G2_GIC_PPI_EL3_VIRTTIMER
-/*            [GTIMER_HYPVIRT]  = S32G2_GIC_PPI_EL2_VIRTTIMER */
-        };
+        ARMCPU *cpu0 = &s->cpus[0];
+        SysBusDevice *nvic_sbd = SYS_BUS_DEVICE(&s->nvic);
 
-        /* Connect CPU timer outputs to GIC PPI inputs */
-        for (irq = 0; irq < ARRAY_SIZE(timer_irq); irq++) {
-            qdev_connect_gpio_out(cpudev, irq,
-                                  qdev_get_gpio_in(DEVICE(&s->gic),
-                                                   ppibase + timer_irq[irq]));
-	    printf("CPU%d set timer irq %d (base=%d)\n", i, ppibase + timer_irq[irq], ppibase);
+        qdev_prop_set_uint32(DEVICE(&s->cpus[i]), "init-nsvtor", 0x00200000);
+        object_property_set_link(OBJECT(cpu0), "memory",
+                                 OBJECT(get_system_memory()), &error_abort);
+        qdev_prop_set_uint32(DEVICE(&s->nvic), "num-irq",  S32G2_NVIC_NUM);
+        cpu0->env.nvic = &s->nvic;
+        s->nvic.cpu = cpu0;
+
+        qdev_realize(DEVICE(cpu0), NULL, &error_fatal);
+        sysbus_realize(nvic_sbd, &error_fatal);
+
+        memory_region_add_subregion(get_system_memory(), S32G2_NVIC_BASE,
+                                    sysbus_mmio_get_region(nvic_sbd, 0));
+        sysbus_connect_irq(nvic_sbd, 0,
+                           qdev_get_gpio_in(DEVICE(cpu0), ARM_CPU_IRQ));
+    } else {
+	printf("cortex detected!\n");
+        /* Cortex-A path: realize all A-profile CPUs and wire to GIC */
+        for (i = 0; i < num_cpus; i++) {
+            qdev_prop_set_bit(DEVICE(&s->cpus[i]), "start-powered-off", i > 0);
+            qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el3", true);
+            qdev_prop_set_bit(DEVICE(&s->cpus[i]), "has_el2", true);
+            object_property_set_int(OBJECT(&s->cpus[i]), "mp-affinity",
+                                  arm_cpu_mp_affinity(i, CORES_PER_CLUSTER), NULL);
+            qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
         }
+	/* GIC: realized for both; only wired to CPUs when A-profile */
+	qdev_prop_set_uint32(DEVICE(&s->gic), "num-irq", S32G2_GIC_NUM_SPI + GIC_INTERNAL);
+	qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 3);
+	qdev_prop_set_uint32(DEVICE(&s->gic), "num-cpu", num_cpus);
+	qdev_prop_set_uint32(DEVICE(&s->gic), "len-redist-region-count", 1);
+	qdev_prop_set_uint32(DEVICE(&s->gic), "redist-region-count[0]", num_cpus);
+	qdev_prop_set_bit(DEVICE(&s->gic), "has-security-extensions", true);
+	sysbus_realize(SYS_BUS_DEVICE(&s->gic), &error_fatal);
 
-        /* Connect GIC outputs to CPU interrupt inputs */
-        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i,
-                           qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
-        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + S32G2_NUM_CPUS,
-                           qdev_get_gpio_in(cpudev, ARM_CPU_FIQ));
-        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + (2 * S32G2_NUM_CPUS),
-                           qdev_get_gpio_in(cpudev, ARM_CPU_VIRQ));
-        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + (3 * S32G2_NUM_CPUS),
-                           qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
+	sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 0, s->memmap[S32G2_DEV_GIC_DIST]);
+	sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 1, s->memmap[S32G2_DEV_GIC_RDIST0]);
 
-        /* GIC maintenance signal */
-        qemu_irq maint_irq;
-        maint_irq = qdev_get_gpio_in(DEVICE(&s->gic),
-                                        ppibase + S32G2_GIC_PPI_MAINT);
-        qdev_connect_gpio_out_named(cpudev, "gicv3-maintenance-interrupt",
-                                    0, maint_irq);
+	/* Wire GIC and timer to CPUs only for A-profile */
+	for (i = 0; i < num_cpus; i++) {
+		DeviceState *cpudev = DEVICE(&s->cpus[i]);
+		int ppibase = S32G2_GIC_NUM_SPI + (i * GIC_INTERNAL);
+		int irq;
+		const int timer_irq[] = {
+			[GTIMER_PHYS] = S32G2_GIC_PPI_PHYSTIMER,
+			[GTIMER_VIRT] = S32G2_GIC_PPI_VIRTTIMER,
+			[GTIMER_HYP]  = S32G2_GIC_PPI_HYPTIMER,
+			[GTIMER_SEC]  = S32G2_GIC_PPI_EL3_VIRTTIMER
+		};
 
-        qdev_connect_gpio_out_named(cpudev, "pmu-interrupt",
-                                    0, qdev_get_gpio_in(DEVICE(&s->gic), ppibase + S32G2_GIC_PPI_PMU));
+		for (irq = 0; irq < ARRAY_SIZE(timer_irq); irq++) {
+			qdev_connect_gpio_out(cpudev, irq,
+					qdev_get_gpio_in(DEVICE(&s->gic),
+						ppibase + timer_irq[irq]));
+		}
+		sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i,
+				qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
+		sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + num_cpus,
+				qdev_get_gpio_in(cpudev, ARM_CPU_FIQ));
+		sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + (2 * num_cpus),
+				qdev_get_gpio_in(cpudev, ARM_CPU_VIRQ));
+		sysbus_connect_irq(SYS_BUS_DEVICE(&s->gic), i + (3 * num_cpus),
+				qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
+		qdev_connect_gpio_out_named(cpudev, "gicv3-maintenance-interrupt",
+				0, qdev_get_gpio_in(DEVICE(&s->gic),
+					ppibase + S32G2_GIC_PPI_MAINT));
+		qdev_connect_gpio_out_named(cpudev, "pmu-interrupt",
+				0, qdev_get_gpio_in(DEVICE(&s->gic),
+					ppibase + S32G2_GIC_PPI_PMU));
+	}
     }
 
-#if 0
-    /* Setup ARMv7m */
-    armv7m = DEVICE(&s->armv7m);
-    qdev_prop_set_uint32(armv7m, "num-irq", 81);
-    qdev_prop_set_bit(armv7m, "enable-bitband", true);
-    qdev_prop_set_string(armv7m, "cpu-type", "cortex-m7-arm-cpu");
-    qdev_connect_clock_in(armv7m, "cpuclk", s->m3clk);
-    qdev_connect_clock_in(armv7m, "refclk", s->refclk);
-    object_property_set_link(OBJECT(&s->armv7m), "memory",
-                             OBJECT(get_system_memory()), &error_abort);
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal)) {
-        return;
-    }
-#else
-//    sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), &error_fatal);
-#endif
     /* Timer */
     sysbus_realize(SYS_BUS_DEVICE(&s->timer), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->timer), 0, s->memmap[S32G2_DEV_PIT]);
+    if (is_m7) {
+        devint = DEVICE(&s->nvic);
+    }
+    else
+    {
+        devint = DEVICE(&s->gic);
+    }
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->timer), 0,
-                       qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_TIMER0));
+                       qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_SPI_TIMER0 : S32G2_GIC_SPI_TIMER0));
 #if 0
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->timer), 1,
                        qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_TIMER1));
@@ -853,7 +891,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->spi1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi1), 0, s->memmap[S32G2_DEV_SPI1]);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->spi1), 0,
-                       qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_SPI1));
+                       qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_SPI_SPI1 :S32G2_GIC_SPI_SPI1));
 
     sysbus_realize(SYS_BUS_DEVICE(&s->spi2), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi2), 0, s->memmap[S32G2_DEV_SPI2]);
@@ -873,13 +911,13 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->pcie), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie), 0, s->memmap[S32G2_DEV_PCIE_DESIGNWARE]);
 
-    qemu_irq irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_A);
+    qemu_irq irq = qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_PCIE_A :S32G2_GIC_PCIE_A);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 0, irq);
-    irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_B);
+    irq = qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_PCIE_B :S32G2_GIC_PCIE_B);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 1, irq);
-    irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_C);
+    irq = qdev_get_gpio_in(devint,(is_m7)? S32G2_NVIC_PCIE_C : S32G2_GIC_PCIE_C);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 2, irq);
-    irq = qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_PCIE_D);
+    irq = qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_PCIE_D : S32G2_GIC_PCIE_D);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 3, irq);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->serdes1), &error_abort);
@@ -925,7 +963,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->hsemu3), 0, s->memmap[S32G2_DEV_HSEMU3]);
 
     s32g2_linflex_props_init(&s->linflex0,
-                   qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_UART0),
+                   qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_SPI_UART0 :S32G2_GIC_SPI_UART0),
                    serial_hd(0));
 
     sysbus_realize(SYS_BUS_DEVICE(&s->linflex0), &error_abort);
@@ -933,7 +971,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
 #if 1
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->linflex0), 0,
-                       qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_UART0));
+                       qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_SPI_UART0: S32G2_GIC_SPI_UART0));
 #endif
 
     sysbus_realize(SYS_BUS_DEVICE(&s->linflex1), &error_abort);
@@ -1014,7 +1052,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->mmc0), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->mmc0), 0, s->memmap[S32G2_DEV_QSPI]);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->mmc0), 0,
-                       qdev_get_gpio_in(DEVICE(&s->gic), S32G2_GIC_SPI_MMC0));
+                       qdev_get_gpio_in(devint, (is_m7)? S32G2_NVIC_SPI_MMC0: S32G2_GIC_SPI_MMC0));
 
     object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->mmc0),
                               "sd-bus");

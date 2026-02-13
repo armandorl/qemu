@@ -66,6 +66,7 @@
 #include "hw/misc/s32g2/siul2_1.h"
 #include "hw/misc/s32g2/serdes.h"
 #include "hw/pci-host/designware.h"
+#include "hw/intc/armv7m_nvic.h"
 
 
 /**
@@ -206,6 +207,7 @@ struct S32G2State {
     /*< public >*/
 
     ARMCPU cpus[S32G2_NUM_CPUS];
+    NVICState nvic;       /* used when boot CPU is Cortex-M7 */
     ARMv7MState armv7m;
     char *m_cpu_type;
     Clock *m3clk;
@@ -303,6 +305,10 @@ struct S32G2State {
  * @s: Allwinner H3 state object pointer
  * @blk: Block backend device object pointer
  */
-void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, uint8_t* cpu_type, int8_t** code_block);
+void s32g2_read_boot_config(BlockBackend *blk);
+void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr *code_entry,
+                         uint8_t *cpu_type, int8_t **code_block);
+/** Vector table base for M7 (where rom_add_blob put the image). Use for init-nsvtor. */
+hwaddr s32g2_get_m7_vecbase(void);
 
 #endif /* HW_ARM_S32G2_H */

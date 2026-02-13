@@ -124,17 +124,39 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
     }
 #endif
 
+    /* Read boot config from SD so SoC can create the right CPU type (A53 vs M7) */
+    di = drive_get(IF_SD, 0, 0);
+    blk = di ? blk_by_legacy_dinfo(di) : NULL;
+    if (blk && blk_is_available(blk)) {
+        s32g2_read_boot_config(blk);
+    }
+
+    printf("Creating S32G object\n");
     s32g2_st = S32G2(object_new(TYPE_S32G2));
     object_property_add_child(OBJECT(machine), "soc", OBJECT(s32g2_st));
     object_unref(OBJECT(s32g2_st));
+    printf("S32G object created!\n");
 
-    atwilc = ATWILC1000(object_new(TYPE_ATWILC1000));
+    hwaddr entry = 0;
+    /* Load target kernel or start using BootROM */
+    if (!machine->kernel_filename && blk && blk_is_available(blk)) {
+        /* Use Boot ROM to copy data from SD card to SRAM */
+        s32g2_bootrom_setup(s32g2_st, blk, &entry, &cpu_type, &code_block);
+    }
+    s32g_vnp_rdb2_binfo.loader_start = entry;
+    s32g_vnp_rdb2_binfo.ram_size = machine->ram_size;
+    s32g_vnp_rdb2_binfo.psci_conduit = QEMU_PSCI_CONDUIT_SMC;
+    s32g_vnp_rdb2_binfo.firmware_loaded = 1;
+    s32g_vnp_rdb2_binfo.entry = entry;
     machine->smp.max_cpus = 7;
 
     create_pcie(machine, s32g2_st->bus);
-#if 0
+
+    atwilc = ATWILC1000(object_new(TYPE_ATWILC1000));
     object_property_add_child(OBJECT(machine), "wifi", OBJECT(atwilc));
     object_unref(OBJECT(atwilc));
+
+#if 0
     /* Setup timer properties */
     /* Freq comes from XBAR_DIV3_CLK */
     object_property_set_int(OBJECT(s32g2_st), "clk0-freq", 32768, &error_abort);
@@ -160,60 +182,56 @@ static void s32g_vnp_rdb2_init(MachineState *machine)
 
 #endif
     /* Mark S32G2 object realized */
+    printf("Realizing S32G object\n");
     qdev_realize(DEVICE(s32g2_st), NULL, &error_abort);
+    printf("S32G object realized!\n");
 
     /* Mark ATWILC object realized */
     bus = qdev_get_child_bus(DEVICE(s32g2_st), "spi-bus.0");
-    qdev_realize(DEVICE(atwilc), bus, &error_abort);
-#if 0
+
     uint32_t atwilc_spi_address = 1;
     object_property_set_uint(OBJECT(atwilc), "address", atwilc_spi_address,
                              &error_abort);
-#endif
+    qdev_realize(DEVICE(atwilc), bus, &error_abort);
 
     /* Retrieve SD bus */
     di = drive_get(IF_SD, 0, 0);
     blk = di ? blk_by_legacy_dinfo(di) : NULL;
     bus = qdev_get_child_bus(DEVICE(s32g2_st), "sd-bus");
 
+
     /* Plug in SD card */
     carddev = qdev_new(TYPE_SD_CARD);
     qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
     qdev_realize_and_unref(carddev, bus, &error_fatal);
 
-    hwaddr entry = 0;
-    /* Load target kernel or start using BootROM */
-    if (!machine->kernel_filename && blk && blk_is_available(blk)) {
-        /* Use Boot ROM to copy data from SD card to SRAM */
-        s32g2_bootrom_setup(s32g2_st, blk, &entry, &cpu_type, &code_block);
+    if (cpu_type == S32G2_CORTEX_M7) {
+        /*
+         * Code is already in guest memory via rom_add_blob in s32g2_bootrom_setup.
+         * Only register the M7 reset handler; no file load. Set vector table base
+         * so the CPU reads initial SP/PC from the loaded image on reset.
+         */
+        //printf("Starting m7 cpu at 0x%lx\n", entry);
+        //ARMCPU *m7_cpu = ARM_CPU(first_cpu);
+        //hwaddr vecbase = s32g2_get_m7_vecbase();
+        //printf("Starting m7 cpu kernel\n");
+        //armv7m_load_kernel(m7_cpu, "/root/zephyrproject/zephyr/build/zephyr/zephyr.elf", 0, 0);
+        //m7_cpu->env.pc = entry;
+        //if (vecbase) {
+        //    m7_cpu->env.v7m.vecbase[M_REG_NS] = vecbase;
+        //    m7_cpu->env.v7m.vecbase[M_REG_S] = vecbase;
+        //    m7_cpu->env.boot_info = &s32g_vnp_rdb2_binfo;
+        //}
+    } else {
+        printf("Starting a53 cpu load kernel\n");
+        arm_load_kernel(ARM_CPU(first_cpu), machine, &s32g_vnp_rdb2_binfo);
+        printf("Set CPU state\n");
+        CPUState *cs = first_cpu;
+        for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
+            ARM_CPU(cs)->env.boot_info = &s32g_vnp_rdb2_binfo;
+        }
+        printf("CPU state set!\n");
     }
-    s32g_vnp_rdb2_binfo.loader_start = entry;
-    s32g_vnp_rdb2_binfo.ram_size = machine->ram_size;
-    s32g_vnp_rdb2_binfo.psci_conduit = QEMU_PSCI_CONDUIT_SMC;
-    s32g_vnp_rdb2_binfo.firmware_loaded = 1;
-    s32g_vnp_rdb2_binfo.entry = entry;
-#if 0
-    if(cpu_type == S32G2_CORTEX_M7)
-    {
-#if 0
-        armv7m_load_kernel(s32g2_st->armv7m.cpu, (const char*)code_block,
-                        entry, 0x200000);
-#else
-        armv7m_load_kernel(s32g2_st->armv7m.cpu, "/mnt/c/tftpboot/rtd_base.elf",
-                        0, 0x40000000);
-#endif
-    }
-    else
-#endif
-    {   /* Cortex-A */
-    	arm_load_kernel(ARM_CPU(first_cpu), machine, &s32g_vnp_rdb2_binfo);
-    }
-#if 1 
-    CPUState *cs = first_cpu;
-    for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
-        ARM_CPU(cs)->env.boot_info = &s32g_vnp_rdb2_binfo;
-    }
-#endif
 }
 
 static void s32g_vnp_rdb2_machine_init(MachineClass *mc)

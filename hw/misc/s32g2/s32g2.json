@@ -885,6 +885,7 @@
 			"offset" : "0x40210000",
 			"description": "HSE messaging Unit Module",
 			"helpers": "",
+			"debug": "1",
 			"registers": {
 				"VER" : {
 					"offset": "0x0",
@@ -895,6 +896,16 @@
 					"offset": "0x4",
 					"reset": "0x20201010",
 					"action":"ignore"
+				},
+				"FSR" : {
+					"offset": "0x104",
+					"reset": "0x00000000",
+					"action":"ignore"
+				},
+				"GCR" : {
+					"offset": "0x114",
+					"reset": "0x00000000",
+					"action":"PERFORM_WRITE(REG_FSR, PERFORM_READ(REG_FSR) | ((val&BIT(0))==BIT(0))? BIT(24) : val );"
 				}
 
 			},

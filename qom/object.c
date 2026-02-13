@@ -1114,7 +1114,9 @@ static int do_object_child_foreach(Object *obj,
 
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&prop)) {
+	    printf("Prop name: %s\n", prop->name);
         if (object_property_is_child(prop)) {
+	    printf("Prop is child - name: %s\n", prop->name);
             Object *child = prop->opaque;
 
             ret = fn(child, opaque);

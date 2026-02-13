@@ -1428,7 +1428,12 @@ static Rom *find_rom(hwaddr addr, size_t size)
 {
     Rom *rom;
 
+    printf("Iterate roms start\n");
     QTAILQ_FOREACH(rom, &roms, next) {
+	printf("rom:%s\n", rom->name);
+	printf("rom addr:0x%lx\n", rom->addr);
+	printf("rom size:0x%lx\n", rom->romsize);
+	printf("addr=0x%lx size=0x%lx\n", addr, size);
         if (rom->fw_file) {
             continue;
         }
@@ -1443,6 +1448,7 @@ static Rom *find_rom(hwaddr addr, size_t size)
         }
         return rom;
     }
+    printf("Iterate roms end\n");
     return NULL;
 }
 
@@ -1659,6 +1665,7 @@ void *rom_ptr_for_as(AddressSpace *as, hwaddr addr, size_t size)
     hwaddr len_unused;
     FindRomCBData cbdata = {};
 
+    printf("reading rom ptr start 1\n");
     /* Easy case: there's data at the actual address */
     rom = rom_ptr(addr, size);
     if (rom) {
