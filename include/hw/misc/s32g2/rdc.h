@@ -26,7 +26,7 @@
 
 /**
  * @name Constants
- * @{
+ * @{ 
  */
 
 /** Highest register address used by RDC device */
@@ -40,7 +40,7 @@
 
 /**
  * @name Object model
- * @{
+ * @{ 
  */
 
 #define TYPE_S32G2_RDC    "s32g2-rdc"

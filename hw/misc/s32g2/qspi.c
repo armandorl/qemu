@@ -57,66 +57,83 @@ void process_lut(void* opaque,unsigned int value);
 
 void debug_lut(unsigned int value);
 void process_lut(void* opaque,unsigned int value) {
-	S32G2qspiState *s = S32G2_QSPI(opaque);
+ S32G2qspiState *s = S32G2_QSPI(opaque);
 
-	if(debug) debug_lut(value);
+if(debug) debug_lut(value);
 
-	if( value == 0x1c06049f ){
-		PERFORM_WRITE(REG_RBDR0, 0x003A81C2);
-	}
-
-	if( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16);
+if( value == 0x1c06049f ){
+PERFORM_WRITE(REG_RBDR0, 0x003A81C2);
 }
+
+if( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16);
+ }
 
 void debug_lut(unsigned int value) {
-	printf("Value=0x%x\n", value);
+ printf("Value=0x%x\n", value);
 
-	printf("Instruction 1=%d op=0x%x\n",((value>>26)&0x3F), (value>>16)&0xFF);
+printf("Instruction 1=%d op=0x%x\n",((value>>26)&0x3F), (value>>16)&0xFF);
 
-	printf("Instruction 0=%d op=0x%x\n",((value>>10)&0x3F), (value&0xFF));
+printf("Instruction 0=%d op=0x%x\n",((value>>10)&0x3F), (value&0xFF));
 }
+
 
 
 static uint64_t s32g2_qspi_read(void *opaque, hwaddr offset,
-		unsigned size)
+                                          unsigned size)
 {
-	const S32G2qspiState *s = S32G2_QSPI(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    const S32G2qspiState *s = S32G2_QSPI(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_QSPI_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return 0;
-	}
+    if (idx >= S32G2_QSPI_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return 0;
+    }
 
-	uint64_t retVal = s->regs[idx];
-	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-	return retVal;
+    uint64_t retVal = s->regs[idx];
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+    return retVal;
+}
+
+static void debug_write(const char *func, hwaddr offset,
+                        uint64_t val, unsigned size)
+{
+    if(debug == 1)
+    {
+        printf("%s offset=%lx val=%lx size=%d\n", func, offset, val, size);
+    }
+    else if(debug == 2)
+    {
+        
+    }
 }
 
 static void s32g2_qspi_write(void *opaque, hwaddr offset,
-		uint64_t val, unsigned size)
+                                       uint64_t val, unsigned size)
 {
-	S32G2qspiState *s = S32G2_QSPI(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    S32G2qspiState *s = S32G2_QSPI(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_QSPI_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return;
-	}
+    if (idx >= S32G2_QSPI_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return;
+    }
 
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-	switch (offset) {
+    if (debug) {
+        debug_write(__func__, offset, val, size);
+    }
 
+    switch (offset) {
+    
 		case REG_MCR:
-			PERFORM_WRITE(REG_MCR, val);
+PERFORM_WRITE(REG_MCR, val);
 			if((val&BIT(11))==BIT(11)) { PERFORM_WRITE(REG_TBSR, 0);}
-			;			break;
+;			break;
 		case REG_DLLCRA:
-			PERFORM_WRITE(REG_DLLCRA, val);
+PERFORM_WRITE(REG_DLLCRA, val);
 			if((val&0x1)==0)PERFORM_WRITE(REG_DLLSR, PERFORM_READ(REG_DLLSR) | BIT(14));
-			;			break;
+;			break;
 		case REG_DLLSR:
 			return;
 		case REG_TBSR:
@@ -128,62 +145,62 @@ static void s32g2_qspi_write(void *opaque, hwaddr offset,
 		case REG_RBDR2:
 			return;
 		case REG_LUTREG0:
-			PERFORM_WRITE(REG_LUTREG0, val);
+PERFORM_WRITE(REG_LUTREG0, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG1:
-			PERFORM_WRITE(REG_LUTREG1, val);
+PERFORM_WRITE(REG_LUTREG1, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG2:
-			PERFORM_WRITE(REG_LUTREG2, val);
+PERFORM_WRITE(REG_LUTREG2, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG3:
-			PERFORM_WRITE(REG_LUTREG3, val);
+PERFORM_WRITE(REG_LUTREG3, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG4:
-			PERFORM_WRITE(REG_LUTREG4, val);
+PERFORM_WRITE(REG_LUTREG4, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG5:
-			PERFORM_WRITE(REG_LUTREG5, val);
+PERFORM_WRITE(REG_LUTREG5, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG6:
-			PERFORM_WRITE(REG_LUTREG6, val);
+PERFORM_WRITE(REG_LUTREG6, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 		case REG_LUTREG7:
-			PERFORM_WRITE(REG_LUTREG7, val);
+PERFORM_WRITE(REG_LUTREG7, val);
 			process_lut(s, val);
-			;			break;
+;			break;
 
-		default:
-			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-			s->regs[idx] = (uint32_t) val;
-			return;
-	}
+    default:
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+        s->regs[idx] = (uint32_t) val;
+        return;
+    }
 }
 
 static const MemoryRegionOps s32g2_qspi_ops = {
-	.read = s32g2_qspi_read,
-	.write = s32g2_qspi_write,
-	.endianness = DEVICE_NATIVE_ENDIAN,
-	.valid = {
-		.min_access_size = 4,
-		.max_access_size = 4,
-	},
-	.impl.min_access_size = 4,
+    .read = s32g2_qspi_read,
+    .write = s32g2_qspi_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .impl.min_access_size = 4,
 };
 
 static void s32g2_qspi_reset(DeviceState *dev)
 {
-	S32G2qspiState *s = S32G2_QSPI(dev); 
+    S32G2qspiState *s = S32G2_QSPI(dev); 
 
-	/* Set default values for registers */
-	PERFORM_WRITE(REG_MCR,0);
+    /* Set default values for registers */
+    	PERFORM_WRITE(REG_MCR,0);
 	PERFORM_WRITE(REG_DLLCRA,0x01200000);
 	PERFORM_WRITE(REG_DLLSR,0x80008000);
 	PERFORM_WRITE(REG_TBSR,0);
@@ -203,44 +220,44 @@ static void s32g2_qspi_reset(DeviceState *dev)
 
 static void s32g2_qspi_init(Object *obj)
 {
-	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-	S32G2qspiState *s = S32G2_QSPI(obj);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    S32G2qspiState *s = S32G2_QSPI(obj);
 
-	/* Memory mapping */
-	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_qspi_ops, s,
-			TYPE_S32G2_QSPI, 0x2000);
-	sysbus_init_mmio(sbd, &s->iomem);
+    /* Memory mapping */
+    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_qspi_ops, s,
+                           TYPE_S32G2_QSPI, 0x2000);
+    sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_qspi_vmstate = {
-	.name = "s32g2_qspi",
-	.version_id = 1,
-	.minimum_version_id = 1,
-	.fields = (VMStateField[]) {
-		VMSTATE_UINT32_ARRAY(regs, S32G2qspiState, S32G2_QSPI_REGS_NUM),
-		VMSTATE_END_OF_LIST()
-	}
+    .name = "s32g2_qspi",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, S32G2qspiState, S32G2_QSPI_REGS_NUM),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static void s32g2_qspi_class_init(ObjectClass *klass, void *data)
 {
-	DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
 
-	dc->reset = s32g2_qspi_reset;
-	dc->vmsd = &s32g2_qspi_vmstate;
+    dc->reset = s32g2_qspi_reset;
+    dc->vmsd = &s32g2_qspi_vmstate;
 }
 
 static const TypeInfo s32g2_qspi_info = {
-	.name          = TYPE_S32G2_QSPI,
-	.parent        = TYPE_SYS_BUS_DEVICE,
-	.instance_init = s32g2_qspi_init,
-	.instance_size = sizeof(S32G2qspiState),
-	.class_init    = s32g2_qspi_class_init,
+    .name          = TYPE_S32G2_QSPI,
+    .parent        = TYPE_SYS_BUS_DEVICE,
+    .instance_init = s32g2_qspi_init,
+    .instance_size = sizeof(S32G2qspiState),
+    .class_init    = s32g2_qspi_class_init,
 };
 
 static void s32g2_qspi_register(void)
 {
-	type_register_static(&s32g2_qspi_info);
+    type_register_static(&s32g2_qspi_info);
 }
 
 type_init(s32g2_qspi_register)

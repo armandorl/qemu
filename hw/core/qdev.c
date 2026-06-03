@@ -313,7 +313,7 @@ static int qdev_assert_realized_properly_cb(Object *obj, void *opaque)
 
     if (dev) {
         dc = DEVICE_GET_CLASS(dev);
-        #if 1
+        #if 0
         printf("Device id: %s\n", dev->id );
         printf("Device path: %s\n", dev->canonical_path );
         printf("Device realized: %d\n\n", dev->realized );

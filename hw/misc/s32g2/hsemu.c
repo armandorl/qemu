@@ -28,7 +28,7 @@
 #include "qemu/module.h"
 #include "hw/misc/s32g2/hsemu.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_VER=	0x0,
@@ -44,38 +44,55 @@ enum {
 
 
 
+
 static uint64_t s32g2_hsemu_read(void *opaque, hwaddr offset,
-		unsigned size)
+                                          unsigned size)
 {
-	const S32G2hsemuState *s = S32G2_HSEMU(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    const S32G2hsemuState *s = S32G2_HSEMU(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_HSEMU_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return 0;
-	}
+    if (idx >= S32G2_HSEMU_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return 0;
+    }
 
-	uint64_t retVal = s->regs[idx];
-	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-	return retVal;
+    uint64_t retVal = s->regs[idx];
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+    return retVal;
+}
+
+static void debug_write(const char *func, hwaddr offset,
+                        uint64_t val, unsigned size)
+{
+    if(debug == 1)
+    {
+        printf("%s offset=%lx val=%lx size=%d\n", func, offset, val, size);
+    }
+    else if(debug == 2)
+    {
+        
+    }
 }
 
 static void s32g2_hsemu_write(void *opaque, hwaddr offset,
-		uint64_t val, unsigned size)
+                                       uint64_t val, unsigned size)
 {
-	S32G2hsemuState *s = S32G2_HSEMU(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    S32G2hsemuState *s = S32G2_HSEMU(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_HSEMU_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return;
-	}
+    if (idx >= S32G2_HSEMU_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return;
+    }
 
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-	switch (offset) {
+    if (debug) {
+        debug_write(__func__, offset, val, size);
+    }
 
+    switch (offset) {
+    
 		case REG_VER:
 			return;
 		case REG_PAR:
@@ -83,34 +100,34 @@ static void s32g2_hsemu_write(void *opaque, hwaddr offset,
 		case REG_FSR:
 			return;
 		case REG_GCR:
-			PERFORM_WRITE(REG_GCR, val);
+PERFORM_WRITE(REG_GCR, val);
 			PERFORM_WRITE(REG_FSR, PERFORM_READ(REG_FSR) | ((val&BIT(0))==BIT(0))? BIT(24) : val );
-			;			break;
+;			break;
 
-		default:
-			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-			s->regs[idx] = (uint32_t) val;
-			return;
-	}
+    default:
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+        s->regs[idx] = (uint32_t) val;
+        return;
+    }
 }
 
 static const MemoryRegionOps s32g2_hsemu_ops = {
-	.read = s32g2_hsemu_read,
-	.write = s32g2_hsemu_write,
-	.endianness = DEVICE_NATIVE_ENDIAN,
-	.valid = {
-		.min_access_size = 4,
-		.max_access_size = 4,
-	},
-	.impl.min_access_size = 4,
+    .read = s32g2_hsemu_read,
+    .write = s32g2_hsemu_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .impl.min_access_size = 4,
 };
 
 static void s32g2_hsemu_reset(DeviceState *dev)
 {
-	S32G2hsemuState *s = S32G2_HSEMU(dev); 
+    S32G2hsemuState *s = S32G2_HSEMU(dev); 
 
-	/* Set default values for registers */
-	PERFORM_WRITE(REG_VER,0x0300000F);
+    /* Set default values for registers */
+    	PERFORM_WRITE(REG_VER,0x0300000F);
 	PERFORM_WRITE(REG_PAR,0x20201010);
 	PERFORM_WRITE(REG_FSR,0x00000000);
 	PERFORM_WRITE(REG_GCR,0x00000000);
@@ -119,44 +136,44 @@ static void s32g2_hsemu_reset(DeviceState *dev)
 
 static void s32g2_hsemu_init(Object *obj)
 {
-	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-	S32G2hsemuState *s = S32G2_HSEMU(obj);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    S32G2hsemuState *s = S32G2_HSEMU(obj);
 
-	/* Memory mapping */
-	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_hsemu_ops, s,
-			TYPE_S32G2_HSEMU, 0x1000);
-	sysbus_init_mmio(sbd, &s->iomem);
+    /* Memory mapping */
+    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_hsemu_ops, s,
+                           TYPE_S32G2_HSEMU, 0x1000);
+    sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_hsemu_vmstate = {
-	.name = "s32g2_hsemu",
-	.version_id = 1,
-	.minimum_version_id = 1,
-	.fields = (VMStateField[]) {
-		VMSTATE_UINT32_ARRAY(regs, S32G2hsemuState, S32G2_HSEMU_REGS_NUM),
-		VMSTATE_END_OF_LIST()
-	}
+    .name = "s32g2_hsemu",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, S32G2hsemuState, S32G2_HSEMU_REGS_NUM),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static void s32g2_hsemu_class_init(ObjectClass *klass, void *data)
 {
-	DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
 
-	dc->reset = s32g2_hsemu_reset;
-	dc->vmsd = &s32g2_hsemu_vmstate;
+    dc->reset = s32g2_hsemu_reset;
+    dc->vmsd = &s32g2_hsemu_vmstate;
 }
 
 static const TypeInfo s32g2_hsemu_info = {
-	.name          = TYPE_S32G2_HSEMU,
-	.parent        = TYPE_SYS_BUS_DEVICE,
-	.instance_init = s32g2_hsemu_init,
-	.instance_size = sizeof(S32G2hsemuState),
-	.class_init    = s32g2_hsemu_class_init,
+    .name          = TYPE_S32G2_HSEMU,
+    .parent        = TYPE_SYS_BUS_DEVICE,
+    .instance_init = s32g2_hsemu_init,
+    .instance_size = sizeof(S32G2hsemuState),
+    .class_init    = s32g2_hsemu_class_init,
 };
 
 static void s32g2_hsemu_register(void)
 {
-	type_register_static(&s32g2_hsemu_info);
+    type_register_static(&s32g2_hsemu_info);
 }
 
 type_init(s32g2_hsemu_register)

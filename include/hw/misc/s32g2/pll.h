@@ -26,7 +26,7 @@
 
 /**
  * @name Constants
- * @{
+ * @{ 
  */
 
 /** Highest register address used by PLL device */
@@ -40,7 +40,7 @@
 
 /**
  * @name Object model
- * @{
+ * @{ 
  */
 
 #define TYPE_S32G2_PLL    "s32g2-pll"

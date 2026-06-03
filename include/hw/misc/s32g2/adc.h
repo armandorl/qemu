@@ -26,7 +26,7 @@
 
 /**
  * @name Constants
- * @{
+ * @{ 
  */
 
 /** Highest register address used by ADC device */
@@ -40,7 +40,7 @@
 
 /**
  * @name Object model
- * @{
+ * @{ 
  */
 
 #define TYPE_S32G2_ADC    "s32g2-adc"

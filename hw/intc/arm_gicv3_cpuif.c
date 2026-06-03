@@ -42,6 +42,10 @@ static bool gicv3_use_ns_bank(CPUARMState *env)
      * access_secure_reg() function because GICv3 banked registers are
      * banked even for AArch64, unlike the other CPU system registers.
      */
+    /* Cortex-M doesn't have the same security model; default to non-secure */
+    if (arm_feature(env, ARM_FEATURE_M)) {
+        return true;
+    }
     return !arm_is_secure_below_el3(env);
 }
 
@@ -96,6 +100,10 @@ static bool icv_access(CPUARMState *env, int hcr_flags)
      *  * access if NS EL1 and either IMO or FMO == 1:
      *    CTLR, DIR, PMR, RPR
      */
+    /* Cortex-M doesn't support EL2, so ICV access is not applicable */
+    if (arm_feature(env, ARM_FEATURE_M)) {
+        return false;
+    }
     uint64_t hcr_el2 = arm_hcr_el2_eff(env);
     bool flagmatch = hcr_el2 & hcr_flags & (HCR_IMO | HCR_FMO);
 
@@ -1221,6 +1229,10 @@ static bool icc_eoi_split(CPUARMState *env, GICv3CPUState *cs)
     /* Return true if we should split priority drop and interrupt
      * deactivation, ie whether the relevant EOIMode bit is set.
      */
+    /* Cortex-M doesn't have EL3 or secure state; return non-split mode */
+    if (arm_feature(env, ARM_FEATURE_M)) {
+        return false;
+    }
     if (arm_is_el3_or_mon(env)) {
         return cs->icc_ctlr_el3 & ICC_CTLR_EL3_EOIMODE_EL3;
     }
@@ -1704,6 +1716,11 @@ static void icc_dir_write(CPUARMState *env, const ARMCPRegInfo *ri,
         return;
     }
 
+    /* Cortex-M doesn't have EL model; skip GICv3 deactivation logic */
+    if (arm_feature(env, ARM_FEATURE_M)) {
+        return;
+    }
+
     trace_gicv3_icc_dir_write(gicv3_redist_affid(cs), value);
 
     if (irq >= cs->gic->num_irq) {
@@ -2065,35 +2082,38 @@ static CPAccessResult gicv3_irqfiq_access(CPUARMState *env,
     GICv3CPUState *cs = icc_cs_from_env(env);
     int el = arm_current_el(env);
 
-    if ((cs->ich_hcr_el2 & ICH_HCR_EL2_TC) &&
-        el == 1 && !arm_is_secure_below_el3(env)) {
-        /* Takes priority over a possible EL3 trap */
-        return CP_ACCESS_TRAP_EL2;
-    }
-
-    if ((env->cp15.scr_el3 & (SCR_FIQ | SCR_IRQ)) == (SCR_FIQ | SCR_IRQ)) {
-        switch (el) {
-        case 1:
-            /* Note that arm_hcr_el2_eff takes secure state into account.  */
-            if ((arm_hcr_el2_eff(env) & (HCR_IMO | HCR_FMO)) == 0) {
-                r = CP_ACCESS_TRAP_EL3;
-            }
-            break;
-        case 2:
-            r = CP_ACCESS_TRAP_EL3;
-            break;
-        case 3:
-            if (!is_a64(env) && !arm_is_el3_or_mon(env)) {
-                r = CP_ACCESS_TRAP_EL3;
-            }
-            break;
-        default:
-            g_assert_not_reached();
+    /* Cortex-M doesn't have EL2/EL3; skip these checks */
+    if (!arm_feature(env, ARM_FEATURE_M)) {
+        if ((cs->ich_hcr_el2 & ICH_HCR_EL2_TC) &&
+            el == 1 && !arm_is_secure_below_el3(env)) {
+            /* Takes priority over a possible EL3 trap */
+            return CP_ACCESS_TRAP_EL2;
         }
-    }
 
-    if (r == CP_ACCESS_TRAP_EL3 && !arm_el_is_aa64(env, 3)) {
-        r = CP_ACCESS_TRAP;
+        if ((env->cp15.scr_el3 & (SCR_FIQ | SCR_IRQ)) == (SCR_FIQ | SCR_IRQ)) {
+            switch (el) {
+            case 1:
+                /* Note that arm_hcr_el2_eff takes secure state into account.  */
+                if ((arm_hcr_el2_eff(env) & (HCR_IMO | HCR_FMO)) == 0) {
+                    r = CP_ACCESS_TRAP_EL3;
+                }
+                break;
+            case 2:
+                r = CP_ACCESS_TRAP_EL3;
+                break;
+            case 3:
+                if (!is_a64(env) && !arm_is_el3_or_mon(env)) {
+                    r = CP_ACCESS_TRAP_EL3;
+                }
+                break;
+            default:
+                g_assert_not_reached();
+            }
+        }
+
+        if (r == CP_ACCESS_TRAP_EL3 && !arm_el_is_aa64(env, 3)) {
+            r = CP_ACCESS_TRAP;
+        }
     }
     return r;
 }
@@ -2103,10 +2123,13 @@ static CPAccessResult gicv3_dir_access(CPUARMState *env,
 {
     GICv3CPUState *cs = icc_cs_from_env(env);
 
-    if ((cs->ich_hcr_el2 & ICH_HCR_EL2_TDIR) &&
-        arm_current_el(env) == 1 && !arm_is_secure_below_el3(env)) {
-        /* Takes priority over a possible EL3 trap */
-        return CP_ACCESS_TRAP_EL2;
+    /* Cortex-M doesn't have EL2; skip trap checks */
+    if (!arm_feature(env, ARM_FEATURE_M)) {
+        if ((cs->ich_hcr_el2 & ICH_HCR_EL2_TDIR) &&
+            arm_current_el(env) == 1 && !arm_is_secure_below_el3(env)) {
+            /* Takes priority over a possible EL3 trap */
+            return CP_ACCESS_TRAP_EL2;
+        }
     }
 
     return gicv3_irqfiq_access(env, ri, isread);
@@ -2115,10 +2138,13 @@ static CPAccessResult gicv3_dir_access(CPUARMState *env,
 static CPAccessResult gicv3_sgi_access(CPUARMState *env,
                                        const ARMCPRegInfo *ri, bool isread)
 {
-    if (arm_current_el(env) == 1 &&
-        (arm_hcr_el2_eff(env) & (HCR_IMO | HCR_FMO)) != 0) {
-        /* Takes priority over a possible EL3 trap */
-        return CP_ACCESS_TRAP_EL2;
+    /* Cortex-M doesn't have EL2; skip trap checks */
+    if (!arm_feature(env, ARM_FEATURE_M)) {
+        if (arm_current_el(env) == 1 &&
+            (arm_hcr_el2_eff(env) & (HCR_IMO | HCR_FMO)) != 0) {
+            /* Takes priority over a possible EL3 trap */
+            return CP_ACCESS_TRAP_EL2;
+        }
     }
 
     return gicv3_irqfiq_access(env, ri, isread);
@@ -2131,34 +2157,37 @@ static CPAccessResult gicv3_fiq_access(CPUARMState *env,
     GICv3CPUState *cs = icc_cs_from_env(env);
     int el = arm_current_el(env);
 
-    if ((cs->ich_hcr_el2 & ICH_HCR_EL2_TALL0) &&
-        el == 1 && !arm_is_secure_below_el3(env)) {
-        /* Takes priority over a possible EL3 trap */
-        return CP_ACCESS_TRAP_EL2;
-    }
-
-    if (env->cp15.scr_el3 & SCR_FIQ) {
-        switch (el) {
-        case 1:
-            if ((arm_hcr_el2_eff(env) & HCR_FMO) == 0) {
-                r = CP_ACCESS_TRAP_EL3;
-            }
-            break;
-        case 2:
-            r = CP_ACCESS_TRAP_EL3;
-            break;
-        case 3:
-            if (!is_a64(env) && !arm_is_el3_or_mon(env)) {
-                r = CP_ACCESS_TRAP_EL3;
-            }
-            break;
-        default:
-            g_assert_not_reached();
+    /* Cortex-M doesn't have EL2/EL3; skip trap checks */
+    if (!arm_feature(env, ARM_FEATURE_M)) {
+        if ((cs->ich_hcr_el2 & ICH_HCR_EL2_TALL0) &&
+            el == 1 && !arm_is_secure_below_el3(env)) {
+            /* Takes priority over a possible EL3 trap */
+            return CP_ACCESS_TRAP_EL2;
         }
-    }
 
-    if (r == CP_ACCESS_TRAP_EL3 && !arm_el_is_aa64(env, 3)) {
-        r = CP_ACCESS_TRAP;
+        if (env->cp15.scr_el3 & SCR_FIQ) {
+            switch (el) {
+            case 1:
+                if ((arm_hcr_el2_eff(env) & HCR_FMO) == 0) {
+                    r = CP_ACCESS_TRAP_EL3;
+                }
+                break;
+            case 2:
+                r = CP_ACCESS_TRAP_EL3;
+                break;
+            case 3:
+                if (!is_a64(env) && !arm_is_el3_or_mon(env)) {
+                    r = CP_ACCESS_TRAP_EL3;
+                }
+                break;
+            default:
+                g_assert_not_reached();
+            }
+        }
+
+        if (r == CP_ACCESS_TRAP_EL3 && !arm_el_is_aa64(env, 3)) {
+            r = CP_ACCESS_TRAP;
+        }
     }
     return r;
 }

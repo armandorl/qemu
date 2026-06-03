@@ -50,81 +50,98 @@ enum {
 
 static QEMUTimer timer1;
 static uint32_t prev_rst1=0;
-static uint32_t event=0;
-static void trigger_hardware_init(void* opaque){
-	S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
-	uint32_t tmp_event=event;
-	uint32_t tmp = PERFORM_READ(REG_PRST1);
-	PERFORM_WRITE(REG_PSTAT1,  PERFORM_READ(REG_PSTAT1) | (tmp&0x1F));
-	timer_del(&timer1);
-	timer_deinit(&timer1);
-	CPUState *cs;
-	for (cs = first_cpu;
-			cs;
-			cs = CPU_NEXT(cs)){
-		if(tmp_event & BIT(1)){
-			if(tmp & BIT(1)){
-				qatomic_set(&cs->halted, true);
-			}
-			else {
-				qatomic_set(&cs->halted, false);
-			}
-			tmp=tmp>>1;
-			tmp_event=tmp_event>>1;
-		}
-	}
+ static uint32_t event=0;
+ static void trigger_hardware_init(void* opaque){
+S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
+ uint32_t tmp_event=event;
+ uint32_t tmp = PERFORM_READ(REG_PRST1);
+ PERFORM_WRITE(REG_PSTAT1,  PERFORM_READ(REG_PSTAT1) | (tmp&0x1F));
+ timer_del(&timer1);
+timer_deinit(&timer1);
+ CPUState *cs;
+ for (cs = first_cpu;
+ cs;
+ cs = CPU_NEXT(cs)){
+ if(tmp_event & BIT(1)){
+ if(tmp & BIT(1)){
+ qatomic_set(&cs->halted, true);
 }
+ else {
+ qatomic_set(&cs->halted, false);
+}
+ tmp=tmp>>1;
+ tmp_event=tmp_event>>1;
+}
+}
+}
+
 
 
 static uint64_t s32g2_mc_rgm_read(void *opaque, hwaddr offset,
-		unsigned size)
+                                          unsigned size)
 {
-	const S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    const S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_MC_RGM_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return 0;
-	}
+    if (idx >= S32G2_MC_RGM_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return 0;
+    }
 
-	uint64_t retVal = s->regs[idx];
-	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-	return retVal;
+    uint64_t retVal = s->regs[idx];
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+    return retVal;
+}
+
+static void debug_write(const char *func, hwaddr offset,
+                        uint64_t val, unsigned size)
+{
+    if(debug == 1)
+    {
+        printf("%s offset=%lx val=%lx size=%d\n", func, offset, val, size);
+    }
+    else if(debug == 2)
+    {
+        
+    }
 }
 
 static void s32g2_mc_rgm_write(void *opaque, hwaddr offset,
-		uint64_t val, unsigned size)
+                                       uint64_t val, unsigned size)
 {
-	S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    S32G2mc_rgmState *s = S32G2_MC_RGM(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_MC_RGM_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return;
-	}
+    if (idx >= S32G2_MC_RGM_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return;
+    }
 
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-	switch (offset) {
+    if (debug) {
+        debug_write(__func__, offset, val, size);
+    }
 
+    switch (offset) {
+    
 		case REG_PRST0:
-			PERFORM_WRITE(REG_PRST0, val);
+PERFORM_WRITE(REG_PRST0, val);
 			PERFORM_WRITE(REG_PSTAT0, val);
-			;			break;
+;			break;
 		case REG_PRST1:
-			PERFORM_WRITE(REG_PRST1, val);
+PERFORM_WRITE(REG_PRST1, val);
 			PERFORM_WRITE(REG_PRST1, val&0x1F); event = (val&0x1F)^(prev_rst1); if(event & ((event&val)==0)) { timer_init_ms(&timer1, QEMU_CLOCK_VIRTUAL, trigger_hardware_init, s);
-				timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}
-			;			break;
+timer_mod(&timer1, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 10);}
+;			break;
 		case REG_PRST2:
-			PERFORM_WRITE(REG_PRST2, val);
+PERFORM_WRITE(REG_PRST2, val);
 			PERFORM_WRITE(REG_PSTAT2, val);
-			;			break;
+;			break;
 		case REG_PRST3:
-			PERFORM_WRITE(REG_PRST3, val);
+PERFORM_WRITE(REG_PRST3, val);
 			PERFORM_WRITE(REG_PSTAT3, val);
-			;			break;
+;			break;
 		case REG_PSTAT0:
 			return;
 		case REG_PSTAT1:
@@ -134,30 +151,30 @@ static void s32g2_mc_rgm_write(void *opaque, hwaddr offset,
 		case REG_PSTAT3:
 			return;
 
-		default:
-			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-			s->regs[idx] = (uint32_t) val;
-			return;
-	}
+    default:
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+        s->regs[idx] = (uint32_t) val;
+        return;
+    }
 }
 
 static const MemoryRegionOps s32g2_mc_rgm_ops = {
-	.read = s32g2_mc_rgm_read,
-	.write = s32g2_mc_rgm_write,
-	.endianness = DEVICE_NATIVE_ENDIAN,
-	.valid = {
-		.min_access_size = 4,
-		.max_access_size = 4,
-	},
-	.impl.min_access_size = 4,
+    .read = s32g2_mc_rgm_read,
+    .write = s32g2_mc_rgm_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .impl.min_access_size = 4,
 };
 
 static void s32g2_mc_rgm_reset(DeviceState *dev)
 {
-	S32G2mc_rgmState *s = S32G2_MC_RGM(dev); 
+    S32G2mc_rgmState *s = S32G2_MC_RGM(dev); 
 
-	/* Set default values for registers */
-	PERFORM_WRITE(REG_DES,0x1);
+    /* Set default values for registers */
+    	PERFORM_WRITE(REG_DES,0x1);
 	PERFORM_WRITE(REG_FES,0x0);
 	PERFORM_WRITE(REG_PRST0,0x0);
 	PERFORM_WRITE(REG_PRST1,0x0);
@@ -172,44 +189,44 @@ static void s32g2_mc_rgm_reset(DeviceState *dev)
 
 static void s32g2_mc_rgm_init(Object *obj)
 {
-	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-	S32G2mc_rgmState *s = S32G2_MC_RGM(obj);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    S32G2mc_rgmState *s = S32G2_MC_RGM(obj);
 
-	/* Memory mapping */
-	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_rgm_ops, s,
-			TYPE_S32G2_MC_RGM, 0x200);
-	sysbus_init_mmio(sbd, &s->iomem);
+    /* Memory mapping */
+    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_rgm_ops, s,
+                           TYPE_S32G2_MC_RGM, 0x200);
+    sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_mc_rgm_vmstate = {
-	.name = "s32g2_mc_rgm",
-	.version_id = 1,
-	.minimum_version_id = 1,
-	.fields = (VMStateField[]) {
-		VMSTATE_UINT32_ARRAY(regs, S32G2mc_rgmState, S32G2_MC_RGM_REGS_NUM),
-		VMSTATE_END_OF_LIST()
-	}
+    .name = "s32g2_mc_rgm",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, S32G2mc_rgmState, S32G2_MC_RGM_REGS_NUM),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static void s32g2_mc_rgm_class_init(ObjectClass *klass, void *data)
 {
-	DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
 
-	dc->reset = s32g2_mc_rgm_reset;
-	dc->vmsd = &s32g2_mc_rgm_vmstate;
+    dc->reset = s32g2_mc_rgm_reset;
+    dc->vmsd = &s32g2_mc_rgm_vmstate;
 }
 
 static const TypeInfo s32g2_mc_rgm_info = {
-	.name          = TYPE_S32G2_MC_RGM,
-	.parent        = TYPE_SYS_BUS_DEVICE,
-	.instance_init = s32g2_mc_rgm_init,
-	.instance_size = sizeof(S32G2mc_rgmState),
-	.class_init    = s32g2_mc_rgm_class_init,
+    .name          = TYPE_S32G2_MC_RGM,
+    .parent        = TYPE_SYS_BUS_DEVICE,
+    .instance_init = s32g2_mc_rgm_init,
+    .instance_size = sizeof(S32G2mc_rgmState),
+    .class_init    = s32g2_mc_rgm_class_init,
 };
 
 static void s32g2_mc_rgm_register(void)
 {
-	type_register_static(&s32g2_mc_rgm_info);
+    type_register_static(&s32g2_mc_rgm_info);
 }
 
 type_init(s32g2_mc_rgm_register)

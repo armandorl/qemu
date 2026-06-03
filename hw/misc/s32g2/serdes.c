@@ -53,38 +53,55 @@ enum {
 
 
 
+
 static uint64_t s32g2_serdes_read(void *opaque, hwaddr offset,
-		unsigned size)
+                                          unsigned size)
 {
-	const S32G2serdesState *s = S32G2_SERDES(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    const S32G2serdesState *s = S32G2_SERDES(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_SERDES_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return 0;
-	}
+    if (idx >= S32G2_SERDES_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return 0;
+    }
 
-	uint64_t retVal = s->regs[idx];
-	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-	return retVal;
+    uint64_t retVal = s->regs[idx];
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+    return retVal;
+}
+
+static void debug_write(const char *func, hwaddr offset,
+                        uint64_t val, unsigned size)
+{
+    if(debug == 1)
+    {
+        printf("%s offset=%lx val=%lx size=%d\n", func, offset, val, size);
+    }
+    else if(debug == 2)
+    {
+        
+    }
 }
 
 static void s32g2_serdes_write(void *opaque, hwaddr offset,
-		uint64_t val, unsigned size)
+                                       uint64_t val, unsigned size)
 {
-	S32G2serdesState *s = S32G2_SERDES(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    S32G2serdesState *s = S32G2_SERDES(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_SERDES_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return;
-	}
+    if (idx >= S32G2_SERDES_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return;
+    }
 
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-	switch (offset) {
+    if (debug) {
+        debug_write(__func__, offset, val, size);
+    }
 
+    switch (offset) {
+    
 		case REG_MPLLA_CTRL:
 			return;
 		case REG_MPLLB_CTRL:
@@ -98,56 +115,56 @@ static void s32g2_serdes_write(void *opaque, hwaddr offset,
 		case REG_XPCS_STAT1:
 			return;
 		case REG_XPCS_SR_MII_STAT:
-			PERFORM_WRITE(REG_XPCS_SR_MII_STAT, val);
+PERFORM_WRITE(REG_XPCS_SR_MII_STAT, val);
 			break;
-			;			break;
+;			break;
 		case REG_XPCS_BITS:
-			PERFORM_WRITE(REG_XPCS_BITS, val);
+PERFORM_WRITE(REG_XPCS_BITS, val);
 			break;
-			;			break;
+;			break;
 		case REG_XPCS_BITS2:
-			PERFORM_WRITE(REG_XPCS_BITS2, val);
+PERFORM_WRITE(REG_XPCS_BITS2, val);
 			break;
-			;			break;
+;			break;
 		case REG_XPCS_MII_STAT:
-			PERFORM_WRITE(REG_XPCS_MII_STAT, val);
+PERFORM_WRITE(REG_XPCS_MII_STAT, val);
 			break;
-			;			break;
+;			break;
 		case REG_XPCS_STAT2:
 			return;
 		case REG_XPCS_SR_MII_CTRL:
-			PERFORM_WRITE(REG_XPCS_SR_MII_CTRL, val);
+PERFORM_WRITE(REG_XPCS_SR_MII_CTRL, val);
 			PERFORM_WRITE(REG_XPCS_SR_MII_STAT, 0); PERFORM_WRITE(REG_XPCS_BITS, 0); PERFORM_WRITE(REG_XPCS_BITS2, 0);
-			;			break;
+;			break;
 		case REG_XPCS_MII_CTRL:
-			PERFORM_WRITE(REG_XPCS_MII_CTRL, val);
+PERFORM_WRITE(REG_XPCS_MII_CTRL, val);
 			PERFORM_WRITE(REG_XPCS_MII_STAT, PERFORM_READ(REG_XPCS_MII_STAT) & ~BIT(15));
-			;			break;
+;			break;
 
-		default:
-			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-			s->regs[idx] = (uint32_t) val;
-			return;
-	}
+    default:
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+        s->regs[idx] = (uint32_t) val;
+        return;
+    }
 }
 
 static const MemoryRegionOps s32g2_serdes_ops = {
-	.read = s32g2_serdes_read,
-	.write = s32g2_serdes_write,
-	.endianness = DEVICE_NATIVE_ENDIAN,
-	.valid = {
-		.min_access_size = 1,
-		.max_access_size = 4,
-	},
-	.impl.min_access_size = 1,
+    .read = s32g2_serdes_read,
+    .write = s32g2_serdes_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+    },
+    .impl.min_access_size = 1,
 };
 
 static void s32g2_serdes_reset(DeviceState *dev)
 {
-	S32G2serdesState *s = S32G2_SERDES(dev); 
+    S32G2serdesState *s = S32G2_SERDES(dev); 
 
-	/* Set default values for registers */
-	PERFORM_WRITE(REG_MPLLA_CTRL,0xC0000001);
+    /* Set default values for registers */
+    	PERFORM_WRITE(REG_MPLLA_CTRL,0xC0000001);
 	PERFORM_WRITE(REG_MPLLB_CTRL,0xC0000001);
 	PERFORM_WRITE(REG_SS_RO_REG_0,0x03FCC018);
 	PERFORM_WRITE(REG_SS_RO_REG_1,0x08010000);
@@ -165,44 +182,44 @@ static void s32g2_serdes_reset(DeviceState *dev)
 
 static void s32g2_serdes_init(Object *obj)
 {
-	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-	S32G2serdesState *s = S32G2_SERDES(obj);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    S32G2serdesState *s = S32G2_SERDES(obj);
 
-	/* Memory mapping */
-	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_serdes_ops, s,
-			TYPE_S32G2_SERDES, 0x40000);
-	sysbus_init_mmio(sbd, &s->iomem);
+    /* Memory mapping */
+    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_serdes_ops, s,
+                           TYPE_S32G2_SERDES, 0x40000);
+    sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_serdes_vmstate = {
-	.name = "s32g2_serdes",
-	.version_id = 1,
-	.minimum_version_id = 1,
-	.fields = (VMStateField[]) {
-		VMSTATE_UINT32_ARRAY(regs, S32G2serdesState, S32G2_SERDES_REGS_NUM),
-		VMSTATE_END_OF_LIST()
-	}
+    .name = "s32g2_serdes",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, S32G2serdesState, S32G2_SERDES_REGS_NUM),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static void s32g2_serdes_class_init(ObjectClass *klass, void *data)
 {
-	DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
 
-	dc->reset = s32g2_serdes_reset;
-	dc->vmsd = &s32g2_serdes_vmstate;
+    dc->reset = s32g2_serdes_reset;
+    dc->vmsd = &s32g2_serdes_vmstate;
 }
 
 static const TypeInfo s32g2_serdes_info = {
-	.name          = TYPE_S32G2_SERDES,
-	.parent        = TYPE_SYS_BUS_DEVICE,
-	.instance_init = s32g2_serdes_init,
-	.instance_size = sizeof(S32G2serdesState),
-	.class_init    = s32g2_serdes_class_init,
+    .name          = TYPE_S32G2_SERDES,
+    .parent        = TYPE_SYS_BUS_DEVICE,
+    .instance_init = s32g2_serdes_init,
+    .instance_size = sizeof(S32G2serdesState),
+    .class_init    = s32g2_serdes_class_init,
 };
 
 static void s32g2_serdes_register(void)
 {
-	type_register_static(&s32g2_serdes_info);
+    type_register_static(&s32g2_serdes_info);
 }
 
 type_init(s32g2_serdes_register)

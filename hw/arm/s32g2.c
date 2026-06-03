@@ -229,6 +229,10 @@ struct S32G2Unimplemented {
     { "STM6",      0x40224000, 12 * KiB },
     { "STM7",      0x40228000, 12 * KiB },
 #endif
+#if 1 /* Unimplemented to enable cortex-m */
+    { "CMU",       0x4005C000, 12 * KiB },
+    { "MSCM",      0x40198000,  4 * KiB },
+#endif    
     { "DMAMUX0",   0x4012C000, 12 * KiB },
     { "DMAMUX1",   0x40130000, 12 * KiB },
     { "EDMA0",     0x40144000, 12 * KiB },
@@ -528,7 +532,7 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
     ptr=(uint32_t*)&buffer[boot_offset];
     s32g2_app_img.header=ptr[0];
     s32g2_app_img.ram_start=ptr[1];
-    s32g2_app_img.ram_entry=ptr[2];
+    s32g2_app_img.ram_entry=ptr[2] & 0xFFFFFFFC;
     s32g2_app_img.length=ptr[3];
 
     uint8_t* app_code=(uint8_t*)&ptr[0x40 / 4];
@@ -584,10 +588,36 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
                            FWCfgCallback fw_callback,
                            void *callback_opaque, AddressSpace *as,
                            bool read_only); */
-
-    rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length + entry_offset,
-                  s32g2_app_img.length + entry_offset, s32g2_app_img.ram_start,
-                  NULL, NULL, NULL, NULL, false);
+#if 0
+    /* For Cortex-M7, create a proper vector table with MSP and Reset PC at the start */
+    if (s32g2_boot_cfg.boot_target == S32G2_CORTEX_M7) {
+        /* Create a buffer with vector table (8 bytes) + application code */
+        uint32_t *vec_table = g_malloc0(8 + s32g2_app_img.length + entry_offset);
+        /* MSP at offset 0 - use a reasonable stack location in SSRAM */
+        vec_table[0] = 0x34001000;
+        /* Reset handler PC at offset 4 - ensure Thumb bit is set */
+        vec_table[1] = s32g2_app_img.ram_entry | 1;
+        /* Copy the application code after the vector table */
+        memcpy((uint8_t *)vec_table + 8, app_code, s32g2_app_img.length + entry_offset);
+        
+        rom_add_blob("s32g2.bootrom", vec_table, 8 + s32g2_app_img.length + entry_offset,
+                      8 + s32g2_app_img.length + entry_offset, s32g2_app_img.ram_start,
+                      NULL, NULL, NULL, NULL, false);
+        g_free(vec_table);
+    } else {
+#endif
+//	    MemoryRegion *rom_add_blob(const char *name, const void *blob, size_t len,
+//                            size_t max_len, hwaddr addr,
+//                            const char *fw_file_name,
+//                            FWCfgCallback fw_callback,
+//                            void *callback_opaque, AddressSpace *as,
+//                            bool read_only);
+        rom_add_blob("s32g2.bootrom", app_code, s32g2_app_img.length + entry_offset,
+                      s32g2_app_img.length + entry_offset, s32g2_app_img.ram_start,
+                      NULL, NULL, NULL, NULL, false);
+#if 0
+    }
+#endif
 #if 1
     rom_add_blob("qspi.bootrom", buffer, rom_size,
                   rom_size, 0,
@@ -752,7 +782,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
         ARMCPU *cpu0 = &s->cpus[0];
         SysBusDevice *nvic_sbd = SYS_BUS_DEVICE(&s->nvic);
 
-        qdev_prop_set_uint32(DEVICE(&s->cpus[i]), "init-nsvtor", 0x00200000);
+        qdev_prop_set_uint32(DEVICE(cpu0), "init-nsvtor", 0x00200000);
         object_property_set_link(OBJECT(cpu0), "memory",
                                  OBJECT(get_system_memory()), &error_abort);
         qdev_prop_set_uint32(DEVICE(&s->nvic), "num-irq",  S32G2_NVIC_NUM);
@@ -766,6 +796,21 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                                     sysbus_mmio_get_region(nvic_sbd, 0));
         sysbus_connect_irq(nvic_sbd, 0,
                            qdev_get_gpio_in(DEVICE(cpu0), ARM_CPU_IRQ));
+        
+        /* Initialize exception state to handle faults during early code execution.
+         * The firmware may trigger MemFault/BusFault before its exception handlers
+         * are set up. Initialize states to allow proper escalation.
+         */
+        cpu0->env.v7m.hfsr = 0;       /* Clear HardFault status */
+        cpu0->env.v7m.dfsr = 0;       /* Clear Debug Fault status */
+        cpu0->env.v7m.cfsr[0] = 0;    /* Clear configurable fault status (NS) */
+        cpu0->env.v7m.cfsr[1] = 0;    /* Clear configurable fault status (S) */
+        cpu0->env.v7m.mmfar[0] = 0;   /* Clear MemManage fault addr (NS) */
+        cpu0->env.v7m.mmfar[1] = 0;   /* Clear MemManage fault addr (S) */
+        cpu0->env.v7m.bfar = 0;       /* Clear BusFault address */
+        cpu0->env.v7m.sfsr = 0;       /* Clear Secure fault status */
+
+
     } else {
 	printf("cortex detected!\n");
         /* Cortex-A path: realize all A-profile CPUs and wire to GIC */
@@ -777,7 +822,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                                   arm_cpu_mp_affinity(i, CORES_PER_CLUSTER), NULL);
             qdev_realize(DEVICE(&s->cpus[i]), NULL, &error_fatal);
         }
-	/* GIC: realized for both; only wired to CPUs when A-profile */
+	/* GIC: only realize for A-profile CPUs */
 	qdev_prop_set_uint32(DEVICE(&s->gic), "num-irq", S32G2_GIC_NUM_SPI + GIC_INTERNAL);
 	qdev_prop_set_uint32(DEVICE(&s->gic), "revision", 3);
 	qdev_prop_set_uint32(DEVICE(&s->gic), "num-cpu", num_cpus);
@@ -789,7 +834,7 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 	sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 0, s->memmap[S32G2_DEV_GIC_DIST]);
 	sysbus_mmio_map(SYS_BUS_DEVICE(&s->gic), 1, s->memmap[S32G2_DEV_GIC_RDIST0]);
 
-	/* Wire GIC and timer to CPUs only for A-profile */
+	/* Wire GIC and timer to CPUs */
 	for (i = 0; i < num_cpus; i++) {
 		DeviceState *cpudev = DEVICE(&s->cpus[i]);
 		int ppibase = S32G2_GIC_NUM_SPI + (i * GIC_INTERNAL);
@@ -994,40 +1039,58 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->ncore), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->ncore), 0, s->memmap[S32G2_DEV_NCORE]);
 
-    memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
-                            32 * KiB, &error_abort);
-    memory_region_init_ram(&s->sram_c0, OBJECT(dev), "sram_c0",
-                            12 * KiB, &error_abort);
-    memory_region_init_ram(&s->sram_c1, OBJECT(dev), "sram_c1",
-                            12 * KiB, &error_abort);
-    memory_region_init_ram(&s->sram_stdby, OBJECT(dev), "sram_stdby",
-                            12 * KiB, &error_abort);
-    memory_region_init_ram(&s->sram_a2, OBJECT(dev), "ssram",
-                            8 * MiB, &error_abort);
-    memory_region_init_ram(&s->ddr, OBJECT(dev), "dram",
-                            2 * GiB, &error_abort);
-    memory_region_init_ram(&s->ddr2, OBJECT(dev), "dram2",
-                            2 * GiB, &error_abort);
-    memory_region_init_ram(&s->qspi_buffer, OBJECT(dev), "qspi_buffer",
-                            64 * MiB, &error_abort);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM],
-                                &s->sram_a1);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SSRAM],
-                                &s->sram_a2);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM],
-                                &s->ddr);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM2],
-                                &s->ddr2);
+    if(is_m7)
+    {
+	    memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
+			    32 * KiB, &error_abort);
+	    memory_region_init_ram(&s->sram_a2, OBJECT(dev), "ssram",
+			    8 * MiB, &error_abort);
+	    memory_region_init_ram(&s->qspi_buffer, OBJECT(dev), "qspi_buffer",
+			    64 * MiB, &error_abort);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM],
+			    &s->sram_a1);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SSRAM],
+			    &s->sram_a2);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_QSPI_BUFFER],
+			    &s->qspi_buffer);
+    }
+    else
+    {
+	    memory_region_init_ram(&s->sram_a1, OBJECT(dev), "sram",
+			    32 * KiB, &error_abort);
+	    memory_region_init_ram(&s->sram_c0, OBJECT(dev), "sram_c0",
+			    12 * KiB, &error_abort);
+	    memory_region_init_ram(&s->sram_c1, OBJECT(dev), "sram_c1",
+			    12 * KiB, &error_abort);
+	    memory_region_init_ram(&s->sram_stdby, OBJECT(dev), "sram_stdby",
+			    12 * KiB, &error_abort);
+	    memory_region_init_ram(&s->sram_a2, OBJECT(dev), "ssram",
+			    8 * MiB, &error_abort);
+	    memory_region_init_ram(&s->ddr, OBJECT(dev), "dram",
+			    2 * GiB, &error_abort);
+	    memory_region_init_ram(&s->ddr2, OBJECT(dev), "dram2",
+			    2 * GiB, &error_abort);
+	    memory_region_init_ram(&s->qspi_buffer, OBJECT(dev), "qspi_buffer",
+			    64 * MiB, &error_abort);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM],
+			    &s->sram_a1);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SSRAM],
+			    &s->sram_a2);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM],
+			    &s->ddr);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_DRAM2],
+			    &s->ddr2);
 
 
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C0],
-                                &s->sram_c0);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C1],
-                                &s->sram_c1);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_STDBY],
-                                &s->sram_stdby);
-    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_QSPI_BUFFER],
-                                &s->qspi_buffer);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C0],
+			    &s->sram_c0);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_C1],
+			    &s->sram_c1);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_SRAM_STDBY],
+			    &s->sram_stdby);
+	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_QSPI_BUFFER],
+			    &s->qspi_buffer);
+    }
 #if 0
     /* Clock Control Unit */
     sysbus_realize(SYS_BUS_DEVICE(&s->ccu), &error_fatal);

@@ -2393,7 +2393,12 @@ void arm_cpu_finalize_features(ARMCPU *cpu, Error **errp);
  */
 static inline bool arm_is_secure_below_el3(CPUARMState *env)
 {
-    assert(!arm_feature(env, ARM_FEATURE_M));
+    /* M-profile CPUs don't have the same security model; they're never
+     * "secure below EL3" in the A/R-profile sense, so we return false.
+     */
+    if (arm_feature(env, ARM_FEATURE_M)) {
+        return false;
+    }
     if (arm_feature(env, ARM_FEATURE_EL3)) {
         return !(env->cp15.scr_el3 & SCR_NS);
     } else {
@@ -2407,7 +2412,10 @@ static inline bool arm_is_secure_below_el3(CPUARMState *env)
 /* Return true if the CPU is AArch64 EL3 or AArch32 Mon */
 static inline bool arm_is_el3_or_mon(CPUARMState *env)
 {
-    assert(!arm_feature(env, ARM_FEATURE_M));
+    /* M-profile CPUs don't have EL3 or monitor mode */
+    if (arm_feature(env, ARM_FEATURE_M)) {
+        return false;
+    }
     if (arm_feature(env, ARM_FEATURE_EL3)) {
         if (is_a64(env) && extract32(env->pstate, 2, 2) == 3) {
             /* CPU currently in AArch64 state and EL3 */

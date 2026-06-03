@@ -240,10 +240,10 @@ static void s32g_vnp_rdb2_machine_init(MachineClass *mc)
     mc->init = s32g_vnp_rdb2_init;
     mc->block_default_type = IF_SD;
     mc->units_per_default_bus = 1;
-    mc->min_cpus = S32G2_NUM_CPUS;
+    mc->min_cpus = 1;
     mc->max_cpus = S32G2_NUM_CPUS + 3; // Plus 3 cortex-m7
     mc->default_cpus = S32G2_NUM_CPUS + 3;
-#if 1
+#if 0
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-a53");
 #else
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-m7");

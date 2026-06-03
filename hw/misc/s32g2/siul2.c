@@ -27,8 +27,9 @@
 #include "qemu/timer.h"
 #include "qemu/module.h"
 #include "hw/misc/s32g2/siul2.h"
+#include "hw/misc/s32g2/iomux_table.h"
 
-static int debug=0;
+static int debug=1;
 
 enum {
 	REG_MIDR1=	0x4,
@@ -42,111 +43,205 @@ enum {
 
 
 
-static uint64_t s32g2_siul2_read(void *opaque, hwaddr offset,
-		unsigned size)
+static const siul2_pad_info_t *s32g2_siul2_find_pad(hwaddr offset)
 {
-	const S32G2siul2State *s = S32G2_SIUL2(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    const siul2_pad_info_t *table = siul2_0_pads;
+    const size_t count = siul2_0_pads_count;
+    const uint32_t addr = (uint32_t)(0x4009C000 + offset);
+    for (size_t i = 0; i < count; ++i) {
+        if (table[i].mscr_addr == addr) {
+            return &table[i];
+        }
+    }
+    return NULL;
+}
 
-	if (idx >= S32G2_SIUL2_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return 0;
-	}
+static const siul2_imcr_info_t *s32g2_siul2_find_imcr(hwaddr offset)
+{
+    const siul2_imcr_info_t *table = siul2_0_imcr;
+    const size_t count = sizeof(siul2_0_imcr) / sizeof(siul2_0_imcr[0]);
+    const uint32_t addr = (uint32_t)(0x4009C000 + offset);
+    for (size_t i = 0; i < count; ++i) {
+        if (table[i].imcr_addr == addr) {
+            return &table[i];
+        }
+    }
+    return NULL;
+}
 
-	uint64_t retVal = s->regs[idx];
-	if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
-	return retVal;
+static void s32g2_siul2_debug_iomux_write(hwaddr offset, uint64_t val)
+{
+    const siul2_pad_info_t *pad = s32g2_siul2_find_pad(offset);
+    const siul2_imcr_info_t *imcr = s32g2_siul2_find_imcr(offset);
+    const uint32_t absolute_addr = (uint32_t)(0x4009C000 + offset);
+    if (pad) {
+        const uint32_t func_sel = (uint32_t)val & 0x7;
+        const char *func_name = NULL;
+        if (func_sel < 8) {
+            func_name = pad->functions[func_sel];
+        }
+        if (func_name) {
+            printf("%s: IOMUX port %s addr=0x%08x val=0x%016llx func=%u (%s)\n",
+                   __func__, pad->pad_name, absolute_addr,
+                   (unsigned long long)val, func_sel, func_name);
+        } else {
+            printf("%s: IOMUX port %s addr=0x%08x val=0x%016llx func=%u\n",
+                   __func__, pad->pad_name, absolute_addr,
+                   (unsigned long long)val, func_sel);
+        }
+        return;
+    }
+    if (imcr) {
+        const uint32_t source_idx = (uint32_t)val & 0x7;
+        const char *source_name = NULL;
+        if (source_idx < 8) {
+            source_name = imcr->source[source_idx];
+        }
+        printf("%s: IOMUX IMCR %s addr=0x%08x val=0x%016llx sources=",
+               __func__, imcr->function_name, absolute_addr, (unsigned long long)val);
+        int first = 1;
+        for (size_t i = 0; i < 8; ++i) {
+            if (!imcr->source[i]) {
+                continue;
+            }
+            printf("%s%s", first ? "" : ", ", imcr->source[i]);
+            first = 0;
+        }
+        if (source_name) {
+            printf(" selected=%s(%u)", source_name, source_idx);
+        } else {
+            printf(" selected=%u", source_idx);
+        }
+        printf("\n");
+        return;
+    }
+    printf("%s: IOMUX unknown addr=0x%08x val=0x%016llx\n",
+           __func__, absolute_addr, (unsigned long long)val);
+}
+
+
+static uint64_t s32g2_siul2_read(void *opaque, hwaddr offset,
+                                          unsigned size)
+{
+    const S32G2siul2State *s = S32G2_SIUL2(opaque);
+    const uint32_t idx = REG_INDEX(offset);
+
+    if (idx >= S32G2_SIUL2_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return 0;
+    }
+
+    uint64_t retVal = s->regs[idx];
+    if(debug)printf("%s offset=0x%lx val=0x%lx size=%d\n", __func__, offset, retVal, size); 
+    return retVal;
+}
+
+static void debug_write(const char *func, hwaddr offset,
+                        uint64_t val, unsigned size)
+{
+    if(debug == 1)
+    {
+        printf("%s offset=%lx val=%lx size=%d\n", func, offset, val, size);
+    }
+    else if(debug == 2)
+    {
+        
+    }
 }
 
 static void s32g2_siul2_write(void *opaque, hwaddr offset,
-		uint64_t val, unsigned size)
+                                       uint64_t val, unsigned size)
 {
-	S32G2siul2State *s = S32G2_SIUL2(opaque);
-	const uint32_t idx = REG_INDEX(offset);
+    S32G2siul2State *s = S32G2_SIUL2(opaque);
+    const uint32_t idx = REG_INDEX(offset);
 
-	if (idx >= S32G2_SIUL2_REGS_NUM) {
-		qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
-				__func__, (uint32_t)offset);
-		return;
-	}
+    if (idx >= S32G2_SIUL2_REGS_NUM) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: out-of-bounds offset 0x%04x\n",
+                      __func__, (uint32_t)offset);
+        return;
+    }
 
-	if(debug)printf("%s offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-	switch (offset) {
+    if (debug) {
+        debug_write(__func__, offset, val, size);
+    }
+    if (debug) { s32g2_siul2_debug_iomux_write(offset, val); }
 
+    switch (offset) {
+    
 		case REG_MIDR1:
 			return;
 		case REG_MIDR2:
 			return;
 
-		default:
-			printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
-			s->regs[idx] = (uint32_t) val;
-			return;
-	}
+    default:
+        printf("%s default action for write offset=%lx val=%lx size=%d\n", __func__, offset, val, size);
+        s->regs[idx] = (uint32_t) val;
+        return;
+    }
 }
 
 static const MemoryRegionOps s32g2_siul2_ops = {
-	.read = s32g2_siul2_read,
-	.write = s32g2_siul2_write,
-	.endianness = DEVICE_NATIVE_ENDIAN,
-	.valid = {
-		.min_access_size = 1,
-		.max_access_size = 4,
-	},
-	.impl.min_access_size = 1,
+    .read = s32g2_siul2_read,
+    .write = s32g2_siul2_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+    },
+    .impl.min_access_size = 1,
 };
 
 static void s32g2_siul2_reset(DeviceState *dev)
 {
-	S32G2siul2State *s = S32G2_SIUL2(dev); 
+    S32G2siul2State *s = S32G2_SIUL2(dev); 
 
-	/* Set default values for registers */
-	PERFORM_WRITE(REG_MIDR1,0x1D120011);
+    /* Set default values for registers */
+    	PERFORM_WRITE(REG_MIDR1,0x1D120011);
 	PERFORM_WRITE(REG_MIDR2,0x48BB0000);
 
 }
 
 static void s32g2_siul2_init(Object *obj)
 {
-	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-	S32G2siul2State *s = S32G2_SIUL2(obj);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    S32G2siul2State *s = S32G2_SIUL2(obj);
 
-	/* Memory mapping */
-	memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_siul2_ops, s,
-			TYPE_S32G2_SIUL2, 0x5000);
-	sysbus_init_mmio(sbd, &s->iomem);
+    /* Memory mapping */
+    memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_siul2_ops, s,
+                           TYPE_S32G2_SIUL2, 0x5000);
+    sysbus_init_mmio(sbd, &s->iomem);
 }
 
 static const VMStateDescription s32g2_siul2_vmstate = {
-	.name = "s32g2_siul2",
-	.version_id = 1,
-	.minimum_version_id = 1,
-	.fields = (VMStateField[]) {
-		VMSTATE_UINT32_ARRAY(regs, S32G2siul2State, S32G2_SIUL2_REGS_NUM),
-		VMSTATE_END_OF_LIST()
-	}
+    .name = "s32g2_siul2",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, S32G2siul2State, S32G2_SIUL2_REGS_NUM),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static void s32g2_siul2_class_init(ObjectClass *klass, void *data)
 {
-	DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
 
-	dc->reset = s32g2_siul2_reset;
-	dc->vmsd = &s32g2_siul2_vmstate;
+    dc->reset = s32g2_siul2_reset;
+    dc->vmsd = &s32g2_siul2_vmstate;
 }
 
 static const TypeInfo s32g2_siul2_info = {
-	.name          = TYPE_S32G2_SIUL2,
-	.parent        = TYPE_SYS_BUS_DEVICE,
-	.instance_init = s32g2_siul2_init,
-	.instance_size = sizeof(S32G2siul2State),
-	.class_init    = s32g2_siul2_class_init,
+    .name          = TYPE_S32G2_SIUL2,
+    .parent        = TYPE_SYS_BUS_DEVICE,
+    .instance_init = s32g2_siul2_init,
+    .instance_size = sizeof(S32G2siul2State),
+    .class_init    = s32g2_siul2_class_init,
 };
 
 static void s32g2_siul2_register(void)
 {
-	type_register_static(&s32g2_siul2_info);
+    type_register_static(&s32g2_siul2_info);
 }
 
 type_init(s32g2_siul2_register)
