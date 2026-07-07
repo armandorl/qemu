@@ -34,3 +34,5 @@ then
 fi
 ${PRECOMMAND} ${COMMAND} ${DEBUG}
 
+# From zephyr project you can use:
+# ../bin/zephyr-sdk-0.16.8/aarch64-zephyr-elf/bin/aarch64-zephyr-elf-gdb /root/zephyrproject/zephyr/build/zephyr/zephyr.elf -x /home/armandorl/.gdbinit
