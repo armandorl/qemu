@@ -71,6 +71,10 @@ with  open(module_file) as f:
             table_name = "siul2_0_pads" if module_name == "siul2" else "siul2_1_pads"
             count_name = "siul2_0_pads_count" if module_name == "siul2" else "siul2_1_pads_count"
             imcr_table_name = "siul2_0_imcr" if module_name == "siul2" else "siul2_1_imcr"
+            if module_name == "siul2":
+                iomux_offset_filter = "    if (offset < 0x240) {\n        return;\n    }\n"
+            else:
+                iomux_offset_filter = "    if (offset < 0x400) {\n        return;\n    }\n"
             iomux_debug_helpers = f"""
 static const siul2_pad_info_t *s32g2_{module_name}_find_pad(hwaddr offset)
 {{
@@ -100,6 +104,7 @@ static const siul2_imcr_info_t *s32g2_{module_name}_find_imcr(hwaddr offset)
 
 static void s32g2_{module_name}_debug_iomux_write(hwaddr offset, uint64_t val)
 {{
+{iomux_offset_filter}
     const siul2_pad_info_t *pad = s32g2_{module_name}_find_pad(offset);
     const siul2_imcr_info_t *imcr = s32g2_{module_name}_find_imcr(offset);
     const uint32_t absolute_addr = (uint32_t)({module_base_addr} + offset);

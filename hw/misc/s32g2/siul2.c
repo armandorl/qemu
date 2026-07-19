@@ -71,6 +71,10 @@ static const siul2_imcr_info_t *s32g2_siul2_find_imcr(hwaddr offset)
 
 static void s32g2_siul2_debug_iomux_write(hwaddr offset, uint64_t val)
 {
+    if (offset < 0x240) {
+        return;
+    }
+
     const siul2_pad_info_t *pad = s32g2_siul2_find_pad(offset);
     const siul2_imcr_info_t *imcr = s32g2_siul2_find_imcr(offset);
     const uint32_t absolute_addr = (uint32_t)(0x4009C000 + offset);
