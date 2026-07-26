@@ -1277,6 +1277,30 @@
 			"size":"0x100000",
 			"min_access":1,
 			"max_access":8
+		},
+		"SWT0":{
+			"soc": "s32g2",
+			"name": "swt0",
+			"offset" : "0x40100000",
+			"description": "Software watchdog timer",
+			"helpers": "",
+			"registers": {
+				"CR" : {
+					"offset": "0x0",
+					"reset": "0xFF00010A"
+				},
+				"TO" : {
+					"offset": "0x8",
+					"reset": "0x0073FDE0"
+				},
+				"SR" : {
+					"offset": "0x10",
+					"reset": "0x0"
+				}
+			},
+			"size":"0x100000",
+			"min_access":1,
+			"max_access":8
 		}
 	}
 }

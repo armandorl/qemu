@@ -3,7 +3,8 @@ set -x
 PRECOMMAND=""
 DEBUG=""
 if [[ "$1" == "" ]];then
-    IMAGE="/media/armandorl/ubuntu/s32g2/zephyrproject/zephyr/build/s32g274ardb_ivt_image.qspi"
+    #IMAGE="/media/armandorl/ubuntu/s32g2/zephyrproject/zephyr/build/s32g274ardb_ivt_image.qspi"
+    IMAGE="/media/armandorl/ubuntu/s32g2/zephyrproject/zephyr/build/zeus_ivt_image.qspi"
     echo "Using default $IMAGE"
 else
     IMAGE=$1

@@ -65,6 +65,7 @@
 #include "hw/misc/s32g2/siul2.h"
 #include "hw/misc/s32g2/siul2_1.h"
 #include "hw/misc/s32g2/serdes.h"
+#include "hw/misc/s32g2/swt0.h"
 #include "hw/pci-host/designware.h"
 #include "hw/intc/armv7m_nvic.h"
 
@@ -176,6 +177,7 @@ enum {
     S32G2_DEV_SIUL2_1,
     S32G2_DEV_SERDES0,
     S32G2_DEV_SERDES1,
+    S32G2_DEV_SWT0,
     S32G2_DEV_PCIE_DESIGNWARE
 };
 
@@ -284,6 +286,7 @@ struct S32G2State {
     DesignwarePCIEHost pcie;
     S32G2serdesState serdes1;
 
+    S32G2swt0State swt0;
     PCIBus *bus;
 };
 

@@ -113,6 +113,7 @@ const hwaddr s32g2_memmap[] = {
     [S32G2_DEV_MC_ME]  = 0x40088000,
     [S32G2_DEV_WKPU]  =  0x40090000,
     [S32G2_DEV_SIUL2]  =  0x4009C000,
+    [S32G2_DEV_SWT0]  =  0x40100000,
     [S32G2_DEV_QSPI_REGS]  =  0x40134000,
     [S32G2_DEV_PCIE_DESIGNWARE]  =  0x40460000,
     [S32G2_DEV_SERDES0]  =  0x40480000,
@@ -737,6 +738,7 @@ static void s32g2_init(Object *obj)
     object_initialize_child(obj, "linflex2", &s->linflex2, TYPE_S32G2_LINFLEX);
     object_initialize_child(obj, "ddrss", &s->ddrss, TYPE_S32G2_DDRSS);
     object_initialize_child(obj, "ddrphy", &s->ddrphy, TYPE_S32G2_DDRPHY);
+    object_initialize_child(obj, "swt0", &s->swt0, TYPE_S32G2_SWT0);
 
 #if 1
     object_initialize_child(obj, "mc_cgm2", &s->mc_cgm2, TYPE_S32G2_MC_CGM2);
@@ -967,6 +969,9 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 
     sysbus_realize(SYS_BUS_DEVICE(&s->serdes1), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->serdes1), 0, s->memmap[S32G2_DEV_SERDES1]);
+
+    sysbus_realize(SYS_BUS_DEVICE(&s->swt0), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->swt0), 0, s->memmap[S32G2_DEV_SWT0]);
 
     sysbus_realize(SYS_BUS_DEVICE(&s->pll), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->pll), 0, s->memmap[S32G2_DEV_PLL]);
