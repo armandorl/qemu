@@ -129,7 +129,7 @@ static void s32g2_swt0_init(Object *obj)
 
     /* Memory mapping */
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_swt0_ops, s,
-                           TYPE_S32G2_SWT0, 0x100000);
+                           TYPE_S32G2_SWT0, 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
 }
 

@@ -30,7 +30,7 @@
  */
 
 /** Highest register address used by SWT0 device */
-#define S32G2_SWT0_REGS_MAXADDR   (0x100000)
+#define S32G2_SWT0_REGS_MAXADDR   (0x1000)
 
 /** Total number of known registers */
 #define S32G2_SWT0_REGS_NUM       ((S32G2_SWT0_REGS_MAXADDR / \
