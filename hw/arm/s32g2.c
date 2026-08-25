@@ -762,6 +762,30 @@ static void s32g2_init(Object *obj)
 
 #define S32G2_NVIC_BASE      0xe000e000
 
+static uint64_t dwt_read(void *opaque, hwaddr addr, unsigned size)
+{
+    S32G2State *s = opaque;
+
+    if (addr == 0x0) { /* DWT_CTRL at 0xE0001000 */
+        return s->dwt_ctrl;
+    }
+    return 0;
+}
+
+static void dwt_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
+{
+    S32G2State *s = opaque;
+
+    if (addr == 0x0) { /* DWT_CTRL */
+        s->dwt_ctrl = (uint32_t)value;
+    }
+}
+
+static const MemoryRegionOps dwt_ops = {
+    .read = dwt_read,
+    .write = dwt_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
 static void s32g2_realize(DeviceState *dev, Error **errp)
 {
     S32G2State *s = S32G2(dev);
@@ -798,7 +822,17 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
                                     sysbus_mmio_get_region(nvic_sbd, 0));
         sysbus_connect_irq(nvic_sbd, 0,
                            qdev_get_gpio_in(DEVICE(cpu0), ARM_CPU_IRQ));
-        
+       
+       MemoryRegion *sys = get_system_memory();
+
+       memory_region_init_io(&s->dwt_mem, OBJECT(s),
+                      &dwt_ops, s,
+                      "s32g2-dwt", 0x1000);
+
+       memory_region_add_subregion_overlap(sys,
+                                    0xe0001000,
+                                    &s->dwt_mem,
+                                    1);
         /* Initialize exception state to handle faults during early code execution.
          * The firmware may trigger MemFault/BusFault before its exception handlers
          * are set up. Initialize states to allow proper escalation.

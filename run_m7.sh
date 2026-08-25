@@ -29,7 +29,7 @@ then
     cp /media/armandorl/ubuntu/s32g2/arm-trusted-firmware/gdbinit_file ~/.gdbinit
 fi
 
-if [[ "$DEBUG" == "" && "$ARG1" != "" ]];
+if [[ "$DEBUG" == "" && "$ARG1" == "debug" ]];
 then
     DEBUG="$1 $*"
 fi
