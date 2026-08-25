@@ -238,8 +238,9 @@ struct S32G2State {
     MemoryRegion ddr2;
     MemoryRegion qspi_buffer;
 
-    MemoryRegion dwt_mem;
     uint32_t dwt_ctrl;
+    uint32_t dwt_cyccnt;
+    MemoryRegion dwt_mem;
 
     S32G2SramcState sram_ctrl_c0;
     S32G2SramcState sram_ctrl_c1;

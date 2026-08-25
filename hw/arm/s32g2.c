@@ -766,20 +766,36 @@ static uint64_t dwt_read(void *opaque, hwaddr addr, unsigned size)
 {
     S32G2State *s = opaque;
 
-    if (addr == 0x0) { /* DWT_CTRL at 0xE0001000 */
+    switch (addr) {
+    case 0x0:   // DWT_CTRL
         return s->dwt_ctrl;
+
+    case 0x4:   // DWT_CYCCNT
+        return ++s->dwt_cyccnt;   // simple monotonic counter
+
+    default:
+        return 0;
     }
-    return 0;
 }
 
-static void dwt_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
+static void dwt_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     S32G2State *s = opaque;
 
-    if (addr == 0x0) { /* DWT_CTRL */
-        s->dwt_ctrl = (uint32_t)value;
+    switch (addr) {
+    case 0x0:   // DWT_CTRL
+        s->dwt_ctrl = val;
+        break;
+
+    case 0x4:   // DWT_CYCCNT
+        s->dwt_cyccnt = val;
+        break;
+
+    default:
+        break;
     }
 }
+
 
 static const MemoryRegionOps dwt_ops = {
     .read = dwt_read,
