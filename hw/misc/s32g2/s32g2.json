@@ -642,6 +642,11 @@
 					"reset": "0",
 					"action":"ignore"
 				},
+				"SPTRCLR" : {
+					"offset": "0x16C",
+					"reset": "0",
+					"action":"PERFORM_WRITE(REG_SPTRCLR, 0)"
+				},
 				"RBDR0" : {
 					"offset": "0x200",
 					"reset": "0",
