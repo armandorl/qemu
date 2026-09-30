@@ -247,7 +247,7 @@ static void s32g2_linFlex_write(void *opaque, hwaddr offset,
 			s->regs[idx] = (uint32_t) val;
 			break;
 	}
-	if(debug)printf("%s offset=%lx val=%lx\n", __func__, offset, val);
+	if(debug)printf("%s offset=0x%lx val=0x%lx\n", __func__, offset, val);
 }
 
 static const MemoryRegionOps s32g2_linFlex_ops = {

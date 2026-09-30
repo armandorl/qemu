@@ -23,6 +23,7 @@
 
 #include "qom/object.h"
 #include "hw/sysbus.h"
+#include "hw/misc/s32g2/iomux_table.h"
 
 /**
  * @name Constants

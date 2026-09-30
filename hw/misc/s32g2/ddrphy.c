@@ -143,6 +143,7 @@ static void s32g2_ddrphy_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_ddrphy_ops, s,
                            TYPE_S32G2_DDRPHY, 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_ddrphy_vmstate = {

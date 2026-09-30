@@ -620,17 +620,30 @@
 			"name": "qspi",
 			"offset" : "0x40134000",
 			"description": "QSPI Module",
-			"helpers": "void process_lut(void* opaque,unsigned int value);\nvoid debug_lut(unsigned int value);void process_lut(void* opaque,unsigned int value) { S32G2qspiState *s = S32G2_QSPI(opaque);\nif(debug) debug_lut(value);\nif( value == 0x1c06049f ){PERFORM_WRITE(REG_RBDR0, 0x003A81C2);}\nif( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16); }\nvoid debug_lut(unsigned int value) { printf(\"Value=0x%x\\n\", value);\nprintf(\"Instruction 1=%d op=0x%x\\n\",((value>>26)&0x3F), (value>>16)&0xFF);\nprintf(\"Instruction 0=%d op=0x%x\\n\",((value>>10)&0x3F), (value&0xFF));}",
+			"helpers": "void process_lut(void* opaque,unsigned int value);\nvoid debug_lut(unsigned int value);\nvoid process_lut(void* opaque,unsigned int value) { S32G2qspiState *s = S32G2_QSPI(opaque);\nif(debug) debug_lut(value);\nif( (value & 0xFF) == 0x9f ){\nS32G2QspiFlashState *flash = s32g2_qspi_flash_find(BUS(&s->flash_bus));\nPERFORM_WRITE(REG_RBSR, 1);\nPERFORM_WRITE(REG_RBDR0, s32g2_qspi_flash_get_jedec_id(flash, 0x003A81C2));\n}\nif( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16); }\nvoid debug_lut(unsigned int value) { printf(\"Value=0x%x\\n\", value);\nprintf(\"Instruction 1=%d op=0x%x\\n\",((value>>26)&0x3F), (value>>16)&0xFF);\nprintf(\"Instruction 0=%d op=0x%x\\n\",((value>>10)&0x3F), (value&0xFF));}\nvoid qspi_handle_ipcr(S32G2qspiState *s, uint32_t val);\nvoid qspi_handle_ipcr(S32G2qspiState *s, uint32_t val) {\nconst uint32_t seqid = (val >> 24) & 0xF;\nconst uint32_t idatsz = val & 0xFFFF;\nconst uint32_t lut_off = 0x310 + seqid * 16;\nconst uint32_t opcode = s->regs[REG_INDEX(lut_off)] & 0xFF;\nconst uint32_t sfar = PERFORM_READ(REG_SFAR);\nif(debug) printf(\"%s seqid=%u idatsz=%u opcode=0x%02x sfar=0x%x\\n\", __func__, seqid, idatsz, opcode, sfar);\nif(opcode == 0x06) {\ns->flash_wel = 1;\n}\nelse if(opcode == 0x04) {\ns->flash_wel = 0;\n}\nelse if((opcode == 0x02 || opcode == 0x32 || opcode == 0x38) && s->xip_storage) {\nuint32_t len = idatsz < s->tbdr_fifo_len ? idatsz : s->tbdr_fifo_len;\nif(s->flash_wel && sfar + len <= s->xip_size) {\nmemcpy(s->xip_storage + sfar, s->tbdr_fifo, len);\nS32G2QspiFlashState *flash = s32g2_qspi_flash_find(BUS(&s->flash_bus));\nif(flash) s32g2_qspi_flash_persist(flash, sfar, s->tbdr_fifo, len);\nif(s->backing_blk && blk_is_available(s->backing_blk)) { blk_pwrite(s->backing_blk, sfar, len, s->tbdr_fifo, 0); }\n} else if(debug) { printf(\"%s: write ignored wel=%u sfar=0x%x len=%u\\n\", __func__, s->flash_wel, sfar, len); }\ns->flash_wel = 0;\n}\nelse if((opcode == 0x20 || opcode == 0x52 || opcode == 0xD8 || opcode == 0x60 || opcode == 0xC7) && s->xip_storage) {\nuint32_t erase_len = (opcode == 0x20) ? 4096 : (opcode == 0x52) ? 32768 : (opcode == 0xD8) ? 65536 : (uint32_t)s->xip_size;\nuint32_t base = (opcode == 0x60 || opcode == 0xC7) ? 0 : (sfar & ~(erase_len - 1));\nif(s->flash_wel && base + erase_len <= s->xip_size) {\nmemset(s->xip_storage + base, 0xFF, erase_len);\nS32G2QspiFlashState *flash = s32g2_qspi_flash_find(BUS(&s->flash_bus));\nif(flash) s32g2_qspi_flash_persist(flash, base, s->xip_storage + base, erase_len);\nif(s->backing_blk && blk_is_available(s->backing_blk)) { blk_pwrite(s->backing_blk, base, erase_len, s->xip_storage + base, 0); }\n} else if(debug) { printf(\"%s: erase ignored wel=%u base=0x%x len=%u\\n\", __func__, s->flash_wel, base, erase_len); }\ns->flash_wel = 0;\n}\nelse if((opcode == 0x03 || opcode == 0x0B || opcode == 0x3B || opcode == 0x6B || opcode == 0xBB || opcode == 0xEB || opcode == 0x0C || opcode == 0x3C || opcode == 0x6C || opcode == 0xEC) && s->xip_storage) {\nuint32_t len = idatsz;\nif(len > sizeof(s->tbdr_fifo)) len = sizeof(s->tbdr_fifo);\nif(sfar + len > s->xip_size) len = (sfar < s->xip_size) ? (uint32_t)(s->xip_size - sfar) : 0;\nmemcpy(&s->regs[REG_INDEX(REG_RBDR0)], s->xip_storage + sfar, len);\n}\nelse if(opcode == 0x05) {\nPERFORM_WRITE(REG_RBDR0, s->flash_wel ? 0x02 : 0x00);\n}\ns->tbdr_fifo_len = 0;\n}",
 			"registers": {
 				"MCR" : {
 					"offset": "0",
 					"reset": "0",
 					"action":"if((val&BIT(11))==BIT(11)) { PERFORM_WRITE(REG_TBSR, 0);}"
 				},
+				"IPCR" : {
+					"offset": "0x08",
+					"reset": "0",
+					"action":"qspi_handle_ipcr(s, val);"
+				},
 				"DLLCRA" : {
 					"offset": "0x60",
 					"reset": "0x01200000",
 					"action":"if((val&0x1)==0)PERFORM_WRITE(REG_DLLSR, PERFORM_READ(REG_DLLSR) | BIT(14));"
+				},
+				"RBSR" : {
+					"offset": "0x10C",
+					"reset": "0"
+				},
+				"SFAR" : {
+					"offset": "0x100",
+					"reset": "0"
 				},
 				"DLLSR" : {
 					"offset": "0x12C",
@@ -641,6 +654,16 @@
 					"offset": "0x150",
 					"reset": "0",
 					"action":"ignore"
+				},
+				"TBDR" : {
+					"offset": "0x154",
+					"reset": "0",
+					"action":"if(s->tbdr_fifo_len + 4 <= sizeof(s->tbdr_fifo)) { s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)(val & 0xFF); s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)((val>>8) & 0xFF); s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)((val>>16) & 0xFF); s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)((val>>24) & 0xFF); }"
+				},
+				"FR" : {
+					"offset": "0x160",
+					"reset": "0",
+					"action":"PERFORM_WRITE(REG_FR, 0)"
 				},
 				"SPTRCLR" : {
 					"offset": "0x16C",
@@ -663,41 +686,56 @@
 					"action":"ignore"
 				},
 				"LUTREG0" : {
+					"offset": "0x310",
+					"reset": "0x08180403",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG1" : {
+					"offset": "0x314",
+					"reset": "0x24001C08",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG2" : {
+					"offset": "0x318",
+					"reset": "0",
+					"action":"process_lut(s, val);"
+				},
+				"LUTREG70" : {
 					"offset": "0x428",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG1" : {
+				"LUTREG71" : {
 					"offset": "0x42C",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG2" : {
+				"LUTREG72" : {
 					"offset": "0x430",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG3" : {
+				"LUTREG73" : {
 					"offset": "0x434",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG4" : {
+				"LUTREG74" : {
 					"offset": "0x43C",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG5" : {
+				"LUTREG75" : {
 					"offset": "0x440",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG6" : {
+				"LUTREG76" : {
 					"offset": "0x444",
 					"reset": "0",
 					"action":"process_lut(s, val);"
 				},
-				"LUTREG7" : {
+				"LUTREG77" : {
 					"offset": "0x448",
 					"reset": "0",
 					"action":"process_lut(s, val);"

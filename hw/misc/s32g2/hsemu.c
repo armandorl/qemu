@@ -143,6 +143,7 @@ static void s32g2_hsemu_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_hsemu_ops, s,
                            TYPE_S32G2_HSEMU, 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_hsemu_vmstate = {

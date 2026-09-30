@@ -23,6 +23,8 @@
 
 #include "qom/object.h"
 #include "hw/sysbus.h"
+#include "hw/misc/s32g2/qspi_flash.h"
+#include "sysemu/block-backend.h"
 
 /**
  * @name Constants
@@ -61,6 +63,23 @@ struct S32G2qspiState {
 
     /** Array of hardware registers */
     uint32_t regs[S32G2_QSPI_REGS_NUM];
+
+    /** Bus used to attach a simulated external SPI/QSPI NOR flash chip */
+    S32G2QspiFlashBus flash_bus;
+
+    /** AHB memory-mapped flash window, set by the board from its XIP RAM/ROM */
+    uint8_t *xip_storage;
+    uint64_t xip_size;
+
+    /** Software model of the IP TX FIFO (TBDR pushes) used for Page Program */
+    uint8_t tbdr_fifo[64];
+    uint32_t tbdr_fifo_len;
+
+    /** Write Enable Latch, set by WREN(0x06)/cleared by WRDI(0x04) or after program/erase */
+    uint8_t flash_wel;
+
+    /** Backing image (board's boot BlockBackend) that program/erase writes persist to */
+    BlockBackend *backing_blk;
 
 };
 

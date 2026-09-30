@@ -189,6 +189,7 @@ static void s32g2_serdes_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_serdes_ops, s,
                            TYPE_S32G2_SERDES, 0x40000);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_serdes_vmstate = {

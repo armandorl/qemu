@@ -270,6 +270,7 @@ static void s32g2_mc_me_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_me_ops, s,
                            TYPE_S32G2_MC_ME, 0x800);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_mc_me_vmstate = {

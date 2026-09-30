@@ -127,6 +127,7 @@ static void s32g2_ncore_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_ncore_ops, s,
                            TYPE_S32G2_NCORE, 0x100000);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_ncore_vmstate = {

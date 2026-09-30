@@ -22,7 +22,7 @@
 
 #include "qom/object.h"
 #include "hw/sysbus.h"
-
+${extra_includes}
 /**
  * @name Constants
  * @{ 
@@ -60,7 +60,7 @@ struct S32G2${module}State {
 
     /** Array of hardware registers */
     uint32_t regs[S32G2_${module_upper}_REGS_NUM];
-
+${extra_struct_fields}
 };
 
 #endif /* HW_MISC_S32G2_${module_upper}_H */

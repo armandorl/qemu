@@ -153,6 +153,7 @@ static void s32g2_rdc_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_rdc_ops, s,
                            TYPE_S32G2_RDC, 0x100);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_rdc_vmstate = {

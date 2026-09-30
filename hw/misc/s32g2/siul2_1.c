@@ -29,7 +29,7 @@
 #include "hw/misc/s32g2/siul2_1.h"
 #include "hw/misc/s32g2/iomux_table.h"
 
-static int debug=1;
+static int debug=0;
 
 enum {
 	REG_MIDR1=	0x4,
@@ -221,6 +221,7 @@ static void s32g2_siul2_1_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_siul2_1_ops, s,
                            TYPE_S32G2_SIUL2_1, 0x2000);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_siul2_1_vmstate = {

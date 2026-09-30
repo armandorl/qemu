@@ -38,6 +38,8 @@ with  open(module_file) as f:
         module_register_reset=""
         module_register_write="\n"
         extra_includes = ""
+        extra_struct_fields = ""
+        extra_instance_init = ""
         iomux_debug_helpers = ""
         iomux_debug_update = ""
         extended_debug_func = ""
@@ -155,6 +157,31 @@ static void s32g2_{module_name}_debug_iomux_write(hwaddr offset, uint64_t val)
 """
             iomux_debug_update = f"    if (debug) {{ s32g2_{module_name}_debug_iomux_write(offset, val); }}\n"
 
+        if module_name == "qspi":
+            extra_includes = (
+                '#include "hw/misc/s32g2/qspi_flash.h"\n'
+                '#include "sysemu/block-backend.h"\n'
+            )
+            extra_struct_fields = (
+                "\n    /** Bus used to attach a simulated external SPI/QSPI NOR flash chip */\n"
+                "    S32G2QspiFlashBus flash_bus;\n"
+                "\n    /** AHB memory-mapped flash window, set by the board from its XIP RAM/ROM */\n"
+                "    uint8_t *xip_storage;\n"
+                "    uint64_t xip_size;\n"
+                "\n    /** Software model of the IP TX FIFO (TBDR pushes) used for Page Program */\n"
+                "    uint8_t tbdr_fifo[64];\n"
+                "    uint32_t tbdr_fifo_len;\n"
+                "\n    /** Write Enable Latch, set by WREN(0x06)/cleared by WRDI(0x04) or after program/erase */\n"
+                "    uint8_t flash_wel;\n"
+                "\n    /** Backing image (board's boot BlockBackend) that program/erase writes persist to */\n"
+                "    BlockBackend *backing_blk;\n"
+            )
+            extra_instance_init = (
+                '    qbus_init(&s->flash_bus, sizeof(s->flash_bus),\n'
+                '               TYPE_S32G2_QSPI_FLASH_BUS, DEVICE(obj), "qspi-flash-bus.0");\n'
+            )
+            module_register_reset += "\ts->flash_wel = 0;\n"
+
         with open(MODULEPATH + "/" + soc_name + "/" + module_name + ".c", "w") as f:
             with open(MODULEPATH + "/" + soc_name + "/template.txt") as template:
                 template_text = template.read()
@@ -177,6 +204,8 @@ static void s32g2_{module_name}_debug_iomux_write(hwaddr offset, uint64_t val)
                                     iomux_debug_update=iomux_debug_update,
                                     extended_debug_func=extended_debug_func,
                                     module_base_addr=module_base_addr,
+                                    extra_struct_fields=extra_struct_fields,
+                                    extra_instance_init=extra_instance_init,
                                     ))
                 except Exception as e:
                     print("ERROR: Failed to write source... " + str(e))
@@ -193,6 +222,8 @@ static void s32g2_{module_name}_debug_iomux_write(hwaddr offset, uint64_t val)
                                     module_upper=module_upper,
                                     module_description=module_description,
                                     register_map=module_register_map,
-                                    module_size=module_size))
+                                    module_size=module_size,
+                                    extra_includes=extra_includes,
+                                    extra_struct_fields=extra_struct_fields))
                 except Exception as e:
                     print("ERROR: Failed to write header... " + str(e))

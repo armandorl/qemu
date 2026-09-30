@@ -275,7 +275,7 @@ struct S32G2Unimplemented {
     { "DDRSS1",    0x40390000, 0x20000 },
     { "DDRSS2",    0x403A0000, 0x20000 },
     { "DDRSS3",    0x403D0000, 0x20000 },
-#if 0
+#if 1
     { "SERDES0",   0x40400000, 1 * MiB },
 #endif
     { "USB",       0x44064000, 4 * KiB },
@@ -475,7 +475,10 @@ void s32g2_bootrom_setup(S32G2State *s, BlockBackend *blk, hwaddr* code_entry, u
     const int64_t rom_size = 64 * MiB;
     const int64_t rom_offset = 0 * KiB;
     uint32_t boot_offset = 0;
-    
+
+    /* QSPI Page Program/Erase persist here so writes survive across restarts */
+    s->qspi.backing_blk = blk;
+
     g_autofree uint8_t *buffer = g_new0(uint8_t, rom_size);
 
     if (blk_pread(blk, rom_offset, rom_size, buffer, 0) < 0) {
@@ -771,7 +774,8 @@ static uint64_t dwt_read(void *opaque, hwaddr addr, unsigned size)
         return s->dwt_ctrl;
 
     case 0x4:   // DWT_CYCCNT
-        return ++s->dwt_cyccnt;   // simple monotonic counter
+        s->dwt_cyccnt = s->dwt_cyccnt + 1000;   // simple monotonic counter
+	return s->dwt_cyccnt;
 
     default:
         return 0;
@@ -1146,6 +1150,13 @@ static void s32g2_realize(DeviceState *dev, Error **errp)
 	    memory_region_add_subregion(get_system_memory(), s->memmap[S32G2_DEV_QSPI_BUFFER],
 			    &s->qspi_buffer);
     }
+
+    /* Let the QSPI IP block's write-command emulation update the same AHB
+     * memory window that qspi.bootrom/XIP reads come from (see
+     * s32g2_bootrom_setup()), so guest Page Program writes are visible to
+     * subsequent reads and can be attached to a -device flash chip's drive. */
+    s->qspi.xip_storage = memory_region_get_ram_ptr(&s->qspi_buffer);
+    s->qspi.xip_size = 64 * MiB;
 #if 0
     /* Clock Control Unit */
     sysbus_realize(SYS_BUS_DEVICE(&s->ccu), &error_fatal);

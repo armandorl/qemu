@@ -129,6 +129,7 @@ static void s32g2_wkpu_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_wkpu_ops, s,
                            TYPE_S32G2_WKPU, 0x100);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_wkpu_vmstate = {

@@ -145,6 +145,7 @@ static void s32g2_dfs_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_dfs_ops, s,
                            TYPE_S32G2_DFS, 0x100);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_dfs_vmstate = {

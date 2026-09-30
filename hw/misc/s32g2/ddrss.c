@@ -160,6 +160,7 @@ static void s32g2_ddrss_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_ddrss_ops, s,
                            TYPE_S32G2_DDRSS, 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_ddrss_vmstate = {

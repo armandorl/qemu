@@ -196,6 +196,7 @@ static void s32g2_mc_rgm_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_rgm_ops, s,
                            TYPE_S32G2_MC_RGM, 0x200);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_mc_rgm_vmstate = {

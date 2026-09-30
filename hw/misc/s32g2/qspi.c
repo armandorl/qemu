@@ -27,26 +27,36 @@
 #include "qemu/timer.h"
 #include "qemu/module.h"
 #include "hw/misc/s32g2/qspi.h"
+#include "hw/misc/s32g2/qspi_flash.h"
+#include "sysemu/block-backend.h"
 
-static int debug=0;
+static int debug=1;
 
 enum {
 	REG_MCR=	0,
+	REG_IPCR=	0x08,
 	REG_DLLCRA=	0x60,
+	REG_RBSR=	0x10C,
+	REG_SFAR=	0x100,
 	REG_DLLSR=	0x12C,
 	REG_TBSR=	0x150,
+	REG_TBDR=	0x154,
+	REG_FR=	0x160,
 	REG_SPTRCLR=	0x16C,
 	REG_RBDR0=	0x200,
 	REG_RBDR1=	0x204,
 	REG_RBDR2=	0x208,
-	REG_LUTREG0=	0x428,
-	REG_LUTREG1=	0x42C,
-	REG_LUTREG2=	0x430,
-	REG_LUTREG3=	0x434,
-	REG_LUTREG4=	0x43C,
-	REG_LUTREG5=	0x440,
-	REG_LUTREG6=	0x444,
-	REG_LUTREG7=	0x448,
+	REG_LUTREG0=	0x310,
+	REG_LUTREG1=	0x314,
+	REG_LUTREG2=	0x318,
+	REG_LUTREG70=	0x428,
+	REG_LUTREG71=	0x42C,
+	REG_LUTREG72=	0x430,
+	REG_LUTREG73=	0x434,
+	REG_LUTREG74=	0x43C,
+	REG_LUTREG75=	0x440,
+	REG_LUTREG76=	0x444,
+	REG_LUTREG77=	0x448,
 };
 
 
@@ -57,13 +67,20 @@ enum {
 void process_lut(void* opaque,unsigned int value);
 
 void debug_lut(unsigned int value);
+
 void process_lut(void* opaque,unsigned int value) {
  S32G2qspiState *s = S32G2_QSPI(opaque);
 
 if(debug) debug_lut(value);
 
-if( value == 0x1c06049f ){
-PERFORM_WRITE(REG_RBDR0, 0x003A81C2);
+if( (value & 0xFF) == 0x9f ){
+
+S32G2QspiFlashState *flash = s32g2_qspi_flash_find(BUS(&s->flash_bus));
+
+PERFORM_WRITE(REG_RBSR, 2);
+
+PERFORM_WRITE(REG_RBDR0, s32g2_qspi_flash_get_jedec_id(flash, 0x003A81C2));
+
 }
 
 if( value == 0x8200472) PERFORM_WRITE(REG_TBSR, 1 << 16);
@@ -75,6 +92,108 @@ void debug_lut(unsigned int value) {
 printf("Instruction 1=%d op=0x%x\n",((value>>26)&0x3F), (value>>16)&0xFF);
 
 printf("Instruction 0=%d op=0x%x\n",((value>>10)&0x3F), (value&0xFF));
+}
+
+void qspi_handle_ipcr(S32G2qspiState *s, uint32_t val);
+
+void qspi_handle_ipcr(S32G2qspiState *s, uint32_t val) {
+
+const uint32_t seqid = (val >> 24) & 0xF;
+
+const uint32_t idatsz = val & 0xFFFF;
+
+const uint32_t lut_off = 0x310 + seqid * 16;
+
+const uint32_t opcode = s->regs[REG_INDEX(lut_off)] & 0xFF;
+
+const uint32_t sfar = PERFORM_READ(REG_SFAR);
+
+if(debug) printf("%s seqid=%u idatsz=%u opcode=0x%02x sfar=0x%x\n", __func__, seqid, idatsz, opcode, sfar);
+
+if(opcode == 0x06) {
+
+s->flash_wel = 1;
+
+}
+
+else if(opcode == 0x04) {
+
+s->flash_wel = 0;
+
+}
+
+else if((opcode == 0x02 || opcode == 0x32 || opcode == 0x38) && s->xip_storage) {
+
+uint32_t len = idatsz < s->tbdr_fifo_len ? idatsz : s->tbdr_fifo_len;
+
+if(s->flash_wel && sfar + len <= s->xip_size) {
+
+memcpy(s->xip_storage + sfar, s->tbdr_fifo, len);
+
+S32G2QspiFlashState *flash = s32g2_qspi_flash_find(BUS(&s->flash_bus));
+
+if(flash) s32g2_qspi_flash_persist(flash, sfar, s->tbdr_fifo, len);
+
+if(s->backing_blk && blk_is_available(s->backing_blk)) {
+ blk_pwrite(s->backing_blk, sfar, len, s->tbdr_fifo, 0);
+ }
+
+}
+ else if(debug) {
+ printf("%s: write ignored wel=%u sfar=0x%x len=%u\n", __func__, s->flash_wel, sfar, len);
+ }
+
+s->flash_wel = 0;
+
+}
+
+else if((opcode == 0x20 || opcode == 0x52 || opcode == 0xD8 || opcode == 0x60 || opcode == 0xC7) && s->xip_storage) {
+
+uint32_t erase_len = (opcode == 0x20) ? 4096 : (opcode == 0x52) ? 32768 : (opcode == 0xD8) ? 65536 : (uint32_t)s->xip_size;
+
+uint32_t base = (opcode == 0x60 || opcode == 0xC7) ? 0 : (sfar & ~(erase_len - 1));
+
+if(s->flash_wel && base + erase_len <= s->xip_size) {
+
+memset(s->xip_storage + base, 0xFF, erase_len);
+
+S32G2QspiFlashState *flash = s32g2_qspi_flash_find(BUS(&s->flash_bus));
+
+if(flash) s32g2_qspi_flash_persist(flash, base, s->xip_storage + base, erase_len);
+
+if(s->backing_blk && blk_is_available(s->backing_blk)) {
+ blk_pwrite(s->backing_blk, base, erase_len, s->xip_storage + base, 0);
+ }
+
+}
+ else if(debug) {
+ printf("%s: erase ignored wel=%u base=0x%x len=%u\n", __func__, s->flash_wel, base, erase_len);
+ }
+
+s->flash_wel = 0;
+
+}
+
+else if((opcode == 0x03 || opcode == 0x0B || opcode == 0x3B || opcode == 0x6B || opcode == 0xBB || opcode == 0xEB || opcode == 0x0C || opcode == 0x3C || opcode == 0x6C || opcode == 0xEC) && s->xip_storage) {
+
+uint32_t len = idatsz;
+
+if(len > sizeof(s->tbdr_fifo)) len = sizeof(s->tbdr_fifo);
+
+if(sfar + len > s->xip_size) len = (sfar < s->xip_size) ? (uint32_t)(s->xip_size - sfar) : 0;
+
+memcpy(&s->regs[REG_INDEX(REG_RBDR0)], s->xip_storage + sfar, len);
+
+}
+
+else if(opcode == 0x05) {
+
+PERFORM_WRITE(REG_RBDR0, s->flash_wel ? 0x02 : 0x00);
+
+}
+
+s->tbdr_fifo_len = 0;
+
 }
 
 
@@ -131,6 +250,10 @@ static void s32g2_qspi_write(void *opaque, hwaddr offset,
 PERFORM_WRITE(REG_MCR, val);
 			if((val&BIT(11))==BIT(11)) { PERFORM_WRITE(REG_TBSR, 0);}
 ;			break;
+		case REG_IPCR:
+PERFORM_WRITE(REG_IPCR, val);
+			qspi_handle_ipcr(s, val);
+;			break;
 		case REG_DLLCRA:
 PERFORM_WRITE(REG_DLLCRA, val);
 			if((val&0x1)==0)PERFORM_WRITE(REG_DLLSR, PERFORM_READ(REG_DLLSR) | BIT(14));
@@ -139,6 +262,14 @@ PERFORM_WRITE(REG_DLLCRA, val);
 			return;
 		case REG_TBSR:
 			return;
+		case REG_TBDR:
+PERFORM_WRITE(REG_TBDR, val);
+			if(s->tbdr_fifo_len + 4 <= sizeof(s->tbdr_fifo)) { s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)(val & 0xFF); s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)((val>>8) & 0xFF); s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)((val>>16) & 0xFF); s->tbdr_fifo[s->tbdr_fifo_len++] = (uint8_t)((val>>24) & 0xFF); }
+;			break;
+		case REG_FR:
+PERFORM_WRITE(REG_FR, val);
+			PERFORM_WRITE(REG_FR, 0)
+;			break;
 		case REG_SPTRCLR:
 PERFORM_WRITE(REG_SPTRCLR, val);
 			PERFORM_WRITE(REG_SPTRCLR, 0)
@@ -161,24 +292,36 @@ PERFORM_WRITE(REG_LUTREG1, val);
 PERFORM_WRITE(REG_LUTREG2, val);
 			process_lut(s, val);
 ;			break;
-		case REG_LUTREG3:
-PERFORM_WRITE(REG_LUTREG3, val);
+		case REG_LUTREG70:
+PERFORM_WRITE(REG_LUTREG70, val);
 			process_lut(s, val);
 ;			break;
-		case REG_LUTREG4:
-PERFORM_WRITE(REG_LUTREG4, val);
+		case REG_LUTREG71:
+PERFORM_WRITE(REG_LUTREG71, val);
 			process_lut(s, val);
 ;			break;
-		case REG_LUTREG5:
-PERFORM_WRITE(REG_LUTREG5, val);
+		case REG_LUTREG72:
+PERFORM_WRITE(REG_LUTREG72, val);
 			process_lut(s, val);
 ;			break;
-		case REG_LUTREG6:
-PERFORM_WRITE(REG_LUTREG6, val);
+		case REG_LUTREG73:
+PERFORM_WRITE(REG_LUTREG73, val);
 			process_lut(s, val);
 ;			break;
-		case REG_LUTREG7:
-PERFORM_WRITE(REG_LUTREG7, val);
+		case REG_LUTREG74:
+PERFORM_WRITE(REG_LUTREG74, val);
+			process_lut(s, val);
+;			break;
+		case REG_LUTREG75:
+PERFORM_WRITE(REG_LUTREG75, val);
+			process_lut(s, val);
+;			break;
+		case REG_LUTREG76:
+PERFORM_WRITE(REG_LUTREG76, val);
+			process_lut(s, val);
+;			break;
+		case REG_LUTREG77:
+PERFORM_WRITE(REG_LUTREG77, val);
 			process_lut(s, val);
 ;			break;
 
@@ -206,21 +349,30 @@ static void s32g2_qspi_reset(DeviceState *dev)
 
     /* Set default values for registers */
     	PERFORM_WRITE(REG_MCR,0);
+	PERFORM_WRITE(REG_IPCR,0);
 	PERFORM_WRITE(REG_DLLCRA,0x01200000);
+	PERFORM_WRITE(REG_RBSR,0);
+	PERFORM_WRITE(REG_SFAR,0);
 	PERFORM_WRITE(REG_DLLSR,0x80008000);
 	PERFORM_WRITE(REG_TBSR,0);
+	PERFORM_WRITE(REG_TBDR,0);
+	PERFORM_WRITE(REG_FR,0);
 	PERFORM_WRITE(REG_SPTRCLR,0);
 	PERFORM_WRITE(REG_RBDR0,0);
 	PERFORM_WRITE(REG_RBDR1,0);
 	PERFORM_WRITE(REG_RBDR2,0);
-	PERFORM_WRITE(REG_LUTREG0,0);
-	PERFORM_WRITE(REG_LUTREG1,0);
+	PERFORM_WRITE(REG_LUTREG0,0x08180403);
+	PERFORM_WRITE(REG_LUTREG1,0x24001C08);
 	PERFORM_WRITE(REG_LUTREG2,0);
-	PERFORM_WRITE(REG_LUTREG3,0);
-	PERFORM_WRITE(REG_LUTREG4,0);
-	PERFORM_WRITE(REG_LUTREG5,0);
-	PERFORM_WRITE(REG_LUTREG6,0);
-	PERFORM_WRITE(REG_LUTREG7,0);
+	PERFORM_WRITE(REG_LUTREG70,0);
+	PERFORM_WRITE(REG_LUTREG71,0);
+	PERFORM_WRITE(REG_LUTREG72,0);
+	PERFORM_WRITE(REG_LUTREG73,0);
+	PERFORM_WRITE(REG_LUTREG74,0);
+	PERFORM_WRITE(REG_LUTREG75,0);
+	PERFORM_WRITE(REG_LUTREG76,0);
+	PERFORM_WRITE(REG_LUTREG77,0);
+	s->flash_wel = 0;
 
 }
 
@@ -233,6 +385,9 @@ static void s32g2_qspi_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_qspi_ops, s,
                            TYPE_S32G2_QSPI, 0x2000);
     sysbus_init_mmio(sbd, &s->iomem);
+    qbus_init(&s->flash_bus, sizeof(s->flash_bus),
+               TYPE_S32G2_QSPI_FLASH_BUS, DEVICE(obj), "qspi-flash-bus.0");
+
 }
 
 static const VMStateDescription s32g2_qspi_vmstate = {

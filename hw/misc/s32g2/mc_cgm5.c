@@ -134,6 +134,7 @@ static void s32g2_mc_cgm5_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_mc_cgm5_ops, s,
                            TYPE_S32G2_MC_CGM5, 0x400);
     sysbus_init_mmio(sbd, &s->iomem);
+
 }
 
 static const VMStateDescription s32g2_mc_cgm5_vmstate = {

@@ -121,6 +121,7 @@ static void s32g2_${module}_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &s32g2_${module}_ops, s,
                            TYPE_S32G2_${module_upper}, ${module_size});
     sysbus_init_mmio(sbd, &s->iomem);
+${extra_instance_init}
 }
 
 static const VMStateDescription s32g2_${module}_vmstate = {
